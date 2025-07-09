@@ -1,0 +1,2 @@
+riar um guia de configuração manual detalhado:
+CONFIGURACAO-PASSO-A-PASSO.md

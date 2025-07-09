@@ -1,0 +1,109 @@
+kind: pipeline
+type: docker
+name: CI-CD-Calculadora
+
+steps:
+  # 1. Instala dependências (incluindo as de dev)
+  - name: Instalar Dependencias
+    image: node:18-alpine
+    commands:
+      - npm install
+
+  # 2. Linting - Quebra o build se o código não estiver no padrão
+  - name: Lint
+    image: node:18-alpine
+    commands:
+      - npm run lint
+    depends_on: [Instalar Dependencias]
+
+  # 3. Testes - Roda os testes e gera cobertura
+  - name: Testes
+    image: node:18-alpine
+    commands:
+      - npm test
+    depends_on: [Instalar Dependencias]
+
+  # 4. Análise SonarQube
+  - name: Analise SonarQube
+    image: sonarsource/sonar-scanner-cli:latest
+    settings:
+      # O drone injetará os segredos como variáveis de ambiente
+      sonar_host_url:
+        from_secret: SONAR_HOST_URL
+      sonar_login:
+        from_secret: SONAR_TOKEN
+    depends_on: [Testes]
+
+  # 5. Build e Push da Imagem Docker para HOMOLOGAÇÃO
+  - name: Build e Push - Homologacao
+    image: plugins/docker
+    settings:
+      repo: ${DRONE_REPO_OWNER}/${DRONE_REPO_NAME}
+      tags: homolog-${DRONE_COMMIT_SHA:0:7} # Tag com o hash do commit
+      registry:
+        from_secret: DOCKER_REGISTRY
+      username:
+        from_secret: DOCKER_USERNAME
+      password:
+        from_secret: DOCKER_PASSWORD
+      insecure: true # Use 'true' se seu registry Gitea não tiver SSL
+    when:
+      branch:
+        - main
+    depends_on: [Analise SonarQube]
+
+  # 6. Deploy em HOMOLOGAÇÃO (Exemplo com SSH)
+  - name: Deploy - Homologacao
+    image: appleboy/drone-ssh
+    settings:
+      host: servidor.homologacao.com
+      username: deploy-user
+      key:
+        from_secret: SSH_PRIVATE_KEY # Adicionar este segredo no Drone
+      port: 22
+      script:
+        - docker pull ${DOCKER_REGISTRY}/${DRONE_REPO_OWNER}/${DRONE_REPO_NAME}:homolog-${DRONE_COMMIT_SHA:0:7}
+        - docker stop calculadora-api-homolog || true
+        - docker rm calculadora-api-homolog || true
+        - docker run -d --restart always -p 8000:8000 --name calculadora-api-homolog ${DOCKER_REGISTRY}/${DRONE_REPO_OWNER}/${DRONE_REPO_NAME}:homolog-${DRONE_COMMIT_SHA:0:7}
+    when:
+      branch:
+        - main
+    depends_on: [Build e Push - Homologacao]
+
+  # 7. Build e Push da Imagem Docker para PRODUÇÃO
+  - name: Build e Push - Producao
+    image: plugins/docker
+    settings:
+      repo: ${DRONE_REPO_OWNER}/${DRONE_REPO_NAME}
+      tags: ${DRONE_TAG} # Tag com o nome da tag git (ex: v1.0.0)
+      registry:
+        from_secret: DOCKER_REGISTRY
+      username:
+        from_secret: DOCKER_USERNAME
+      password:
+        from_secret: DOCKER_PASSWORD
+      insecure: true
+    when:
+      event:
+        - tag
+    depends_on: [Analise SonarQube]
+
+  # 8. Deploy em PRODUÇÃO (Exemplo com SSH)
+  - name: Deploy - Producao
+    image: appleboy/drone-ssh
+    settings:
+      host: servidor.producao.com
+      username: deploy-user
+      key:
+        from_secret: SSH_PRIVATE_KEY
+      port: 22
+      script:
+        - docker pull ${DOCKER_REGISTRY}/${DRONE_REPO_OWNER}/${DRONE_REPO_NAME}:${DRONE_TAG}
+        - docker stop calculadora-api-prod || true
+        - docker rm calculadora-api-prod || true
+        - docker run -d --restart always -p 8000:8000 --name calculadora-api-prod ${DOCKER_REGISTRY}/${DRONE_REPO_OWNER}/${DRONE_REPO_NAME}:${DRONE_TAG}
+    when:
+      event:
+        - tag
+    depends_on: [Build e Push - Producao]

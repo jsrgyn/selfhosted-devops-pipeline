@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevOps Stack - Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 800px;
+      width: 100%;
+    }
+
+    .logo {
+      font-size: 3rem;
+      font-weight: bold;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 1.2rem;
+      margin-bottom: 40px;
+    }
+
+    .services {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .service-card {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      border: 2px solid transparent;
+    }
+
+    .service-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+      border-color: #667eea;
+    }
+
+    .service-icon {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      display: block;
+    }
+
+    .service-title {
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .service-description {
+      color: #666;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .gitea {
+      border-left: 4px solid #609926;
+    }
+
+    .drone {
+      border-left: 4px solid #212121;
+    }
+
+    .sonarqube {
+      border-left: 4px solid #4E9BCD;
+    }
+
+    .status-bar {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 20px;
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #28a745;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+
+      100% {
+        opacity: 1;
+      }
+    }
+
+    .footer {
+      margin-top: 30px;
+      color: #888;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 30px 20px;
+      }
+
+      .logo {
+        font-size: 2rem;
+      }
+
+      .services {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="logo">🚀 DevOps Stack</div>
+    <div class="subtitle">Plataforma Integrada de Desenvolvimento</div>
+
+    <div class="services">
+      <a href="/gitea/" class="service-card gitea">
+        <span class="service-icon">🦊</span>
+        <div class="service-title">Gitea</div>
+        <div class="service-description">
+          Repositórios Git, controle de versão e colaboração em código
+        </div>
+      </a>
+
+      <a href="/drone/" class="service-card drone">
+        <span class="service-icon">🔄</span>
+        <div class="service-title">Drone CI</div>
+        <div class="service-description">
+          Integração e entrega contínua automatizada
+        </div>
+      </a>
+
+      <a href="/sonarqube/" class="service-card sonarqube">
+        <span class="service-icon">🔍</span>
+        <div class="service-title">SonarQube</div>
+        <div class="service-description">
+          Análise de qualidade e segurança do código
+        </div>
+      </a>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-item">
+        <div class="status-dot"></div>
+        <span>Gitea Online</span>
+      </div>
+      <div class="status-item">
+        <div class="status-dot"></div>
+        <span>Drone CI Online</span>
+      </div>
+      <div class="status-item">
+        <div class="status-dot"></div>
+        <span>SonarQube Online</span>
+      </div>
+      <div class="status-item">
+        <div class="status-dot"></div>
+        <span>PostgreSQL Online</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>DevOps Stack v1.0 | Powered by Docker & Nginx</p>
+      <p>Acesso rápido: <strong>/git</strong> | <strong>/ci</strong> | <strong>/quality</strong></p>
+    </div>
+  </div>
+
+  <script>
+    // Verificar status dos serviços
+    async function checkServiceStatus() {
+      const services = [
+        { name: 'Gitea', url: '/gitea/api/v1/version' },
+        { name: 'Drone CI', url: '/drone/api' },
+        { name: 'SonarQube', url: '/sonarqube/api/system/status' }
+      ];
+
+      for (const service of services) {
+        try {
+          const response = await fetch(service.url);
+          const statusDot = document.querySelector(`.status-item:nth-child(${services.indexOf(service) + 1}) .status-dot`);
+
+          if (response.ok) {
+            statusDot.style.background = '#28a745';
+          } else {
+            statusDot.style.background = '#ffc107';
+          }
+        } catch (error) {
+          const statusDot = document.querySelector(`.status-item:nth-child(${services.indexOf(service) + 1}) .status-dot`);
+          statusDot.style.background = '#dc3545';
+        }
+      }
+    }
+
+    // Verificar status a cada 30 segundos
+    checkServiceStatus();
+    setInterval(checkServiceStatus, 30000);
+  </script>
+</body>
+
+</html>
