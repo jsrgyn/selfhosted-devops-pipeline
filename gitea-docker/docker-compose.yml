@@ -177,7 +177,8 @@ services:
       - "gitea.local:172.18.0.1"
       - "sonar.local:172.18.0.1"
     # Imagem baseada em Ubuntu com SSH e Node.js para ARM64
-    image: sickp/alpine-sshd:latest
+    #image: sickp/alpine-sshd:latest
+    image: devops-build-server:latest
     container_name: build_server_node
     hostname: build-server-node # Define o hostname dentro da rede
     restart: unless-stopped

@@ -90,4 +90,5 @@ docker exec -it build_server_node bash
 cd /root/builds/<nome-do-repo>
 npm ci
 
-
+docker build -t devops-build-server:latest ./build-image/
+docker build -t devops-build-server:latest ./build-image/
