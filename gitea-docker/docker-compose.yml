@@ -193,6 +193,8 @@ services:
       - ./ssh/id_rsa.pub:/root/.ssh/authorized_keys:ro
       # Volume para persistir o node_modules e outras ferramentas de build
       - ./data/build-server:/root/builds
+    ports:
+       - 8000:8000 # Porta para acessar o servidor de build Node.js
   sonarqube:
     image: sonarqube:10.3-community
     container_name: sonarqube
