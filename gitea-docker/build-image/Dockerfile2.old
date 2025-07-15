@@ -1,0 +1,59 @@
+# ==============================================================================
+# Dockerfile para Servidor de Build (Ubuntu ARM64)
+# Contém: SSH, Git, Node.js, Yarn, e ferramentas essenciais de build.
+# ==============================================================================
+
+# Use a imagem oficial do Ubuntu para ARM64 como base.
+
+
+# ==============================================================================
+# Dockerfile para Servidor de Build ARM64 com ferramentas de rede, monitoramento e build
+# ==============================================================================
+
+FROM --platform=linux/arm64 ubuntu:jammy
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Instala pacotes essenciais de sistema, rede e monitoramento
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssh-server \
+    sudo \
+    jq \
+    git \
+    curl \
+    ca-certificates \
+    apt-utils \
+    openjdk-17-jre \
+    wget \
+    unzip \
+    htop \
+    iputils-ping \
+    net-tools \
+    dnsutils \
+    lsof \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Instala Node.js 18 + Yarn
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g yarn
+
+# Instala o SonarScanner via NPM (compatível com ARM64)
+RUN npm install -g sonarqube-scanner
+
+# Instala o PM2 globalmente
+RUN npm install -g pm2
+
+# Configura SSH
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/root:\*:/root::/' /etc/shadow \
+    && sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd \
+    && mkdir -p /run/sshd \
+    && mkdir -p /home/ubuntu/builds \
+    && mkdir -p /root/.ssh && chmod 700 /root/.ssh
+
+# Expõe as portas necessárias
+EXPOSE 22     # Acesso SSH
+EXPOSE 8000   # Porta da aplicação Node.js
+
+CMD ["/usr/sbin/sshd", "-D"]
