@@ -34,15 +34,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     # Testes de portas e conexões
     netcat \
-    # ======== ADIÇÃO PARA OPÇÃO 4 ========
-    # Cliente MySQL para dump e conexão remota
-    mysql-client \
-    # Utilitários para comparar arquivos e manipular scripts
-    diffutils \
-    vim \
-    sed \
-    grep \
-    # ====================================
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
@@ -55,6 +46,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
 # ==============================================================================
 # Instala o SonarScanner via NPM (compatível com ARM64)
 # ==============================================================================
+# RUN npm install -g sonarqube-scanner
 RUN wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip \
     && unzip sonar-scanner-cli-5.0.1.3006-linux.zip -d /opt \
     && ln -s /opt/sonar-scanner-*/bin/sonar-scanner /usr/local/bin/sonar-scanner
@@ -67,6 +59,7 @@ RUN npm install -g pm2
 # ==============================================================================
 # (Opcional) Instala ferramentas extras úteis para troubleshooting e CI/CD
 # ==============================================================================
+# --- NOVO ---
 RUN npm install -g serve concurrently \
     && pip install httpie \
     && echo 'alias ll="ls -alF"' >> /root/.bashrc \
@@ -85,14 +78,21 @@ RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/
 # ==============================================================================
 # Adiciona um usuário não-root com permissão de sudo (opcional e seguro)
 # ==============================================================================
+# --- NOVO ---
 RUN useradd -m -s /bin/bash builder \
     && echo 'builder ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
     && mkdir -p /home/builder/.ssh && chmod 700 /home/builder/.ssh
 
+# Copiar a chave pública manualmente no runtime:
+# docker run -v ./ssh/id_rsa.pub:/root/.ssh/authorized_keys
+
 # ==============================================================================
 # Expõe as portas necessárias
 # ==============================================================================
+# Acesso SSH
 EXPOSE 22
+
+# Porta da aplicação Node.js (Ex: pm2 serve, nest start, etc.)
 EXPOSE 8000
 
 # ==============================================================================

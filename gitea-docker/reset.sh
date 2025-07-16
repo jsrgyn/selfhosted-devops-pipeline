@@ -36,6 +36,8 @@ docker exec -it nginx_proxy bash
 
 docker exec -it drone_server sh
 
+docker exec -it build_server_node sh
+
 # Para e remove os containers do Drone
 docker-compose rm --stop --force drone-server drone-runner
 
@@ -92,3 +94,10 @@ npm ci
 
 docker build -t devops-build-server:latest ./build-image/
 docker build -t devops-build-server:latest ./build-image/
+
+#2. Remover o container antigo (sem apagar volume/dados)
+docker-compose stop build-server-node
+docker-compose rm -f build-server-node
+
+#3. Subir com a nova imagem já aplicada
+docker-compose up -d --no-deps --force-recreate build-server-node

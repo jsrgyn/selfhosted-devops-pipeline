@@ -178,6 +178,9 @@ services:
       - "sonar.local:172.18.0.1"
     # Imagem baseada em Ubuntu com SSH e Node.js para ARM64
     #image: sickp/alpine-sshd:latest
+    build:
+      context: ./build-image
+      dockerfile: Dockerfile
     image: devops-build-server:latest
     container_name: build_server_node
     hostname: build-server-node # Define o hostname dentro da rede
@@ -194,6 +197,7 @@ services:
       # Volume para persistir o node_modules e outras ferramentas de build
       - ./data/build-server:/root/builds
     ports:
+       #- 22:22 # Porta para acessar o servidor de build Node.js
        - 8000:8000 # Porta para acessar o servidor de build Node.js
   sonarqube:
     image: sonarqube:10.3-community
