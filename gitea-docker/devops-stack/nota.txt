@@ -1,0 +1,4 @@
+Get the most out of SonarQube!
+Take advantage of the whole ecosystem by using SonarLint, a free IDE plugin that helps you find and fix issues earlier in your workflow. Connect SonarLint to SonarQube to sync rule sets and issue states.
+
+https://www.sonarsource.com/products/sonarlint/?referrer=sonarqube-welcome

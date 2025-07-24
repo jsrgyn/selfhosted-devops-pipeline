@@ -1,0 +1,54 @@
+# docker-compose.override.yml.example
+# Arquivo opcional para customizações em ambiente de desenvolvimento
+
+version: '3.9'
+
+services:
+  gitea:
+    volumes:
+      - ./build/gitea/dev-app:/data/gitea/git/repositories:cached
+    environment:
+      - GITEA__log__LEVEL=debug
+      - GITEA__webhook__SKIP_TLS_VERIFY=true
+    ports:
+      - "3000:3000"    # Interface Web
+      - "222:22"       # SSH (se habilitado)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  drone:
+    environment:
+      - DRONE_LOG_LEVEL=debug
+    ports:
+      - "8080:80"
+    volumes:
+      - ./build/drone/dev-plugins:/plugins:cached
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  sonar:
+    environment:
+      - SONAR_LOG_LEVEL=DEBUG
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./build/sonarqube/extensions:/opt/sonarqube/extensions
+      - ./build/sonarqube/dev-conf:/opt/sonarqube/conf:cached
+
+  build-server:
+    environment:
+      - NODE_ENV=development
+      - DEBUG=true
+    ports:
+      - "5173:5173"  # Exemplo: porta Vite.js
+    volumes:
+      - ./build/build-server/app:/usr/src/app
+      - /usr/src/app/node_modules
+    command: >
+      sh -c "npm install && npm run dev"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  default:
+    name: devops-network
