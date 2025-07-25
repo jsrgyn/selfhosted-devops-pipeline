@@ -87,7 +87,7 @@ DRONE_GITEA_CLIENT_SECRET=sua-aplicacao-client-secret-aqui
 ### 3.2 Reiniciar Drone
 
 ```bash
-docker-compose restart drone-server drone-runner
+docker-compose restart drone-server drone-runner-ssh
 ```
 
 

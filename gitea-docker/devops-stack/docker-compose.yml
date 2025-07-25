@@ -85,7 +85,7 @@ services:
       - DRONE_SERVER_HOST=${DRONE_SERVER_HOST}
       #- DRONE_UI_PATH=${DRONE_UI_PATH}
       - DRONE_SERVER_PROTO=${DRONE_SERVER_PROTO}
-      - DRONE_SERVER_PORT=${DRONE_SERVER_PORT}
+      #- DRONE_SERVER_PORT=${DRONE_SERVER_PORT}
       # Database Settings
       - DRONE_DATABASE_DRIVER=postgres
       - DRONE_DATABASE_DATASOURCE=postgres://${DRONE_DATABASE_USER}:${DRONE_DB_PASSWORD}@postgres_dbx:5432/${DRONE_DATABASE}?sslmode=disable
@@ -100,30 +100,17 @@ services:
       - DRONE_WEBHOOK_SECRET=${DRONE_WEBHOOK_SECRET}
       # Runner Settings
       - DRONE_AGENTS_ENABLED=true
+      - DRONE_HTTP_ADDR=${DRONE_HTTP_ADDR}
     volumes:
       - ./data/drone:/data
       - ./config/drone:/etc/drone
-    depends_on:
-      postgres_dbx:
-        condition: service_healthy
-      gitea:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${DRONE_SERVER_PORT:-80}/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
 
+  # Drone Runner - CI/CD Runner
+  # -------------------- DRONE SSH RUNNER --------------------
   drone-runner-ssh:
     image: drone/drone-runner-ssh:latest
     container_name: drone_runner_ssh
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     networks:
       - devops-network
     volumes:
@@ -281,8 +268,6 @@ services:
       start_period: 30s
     depends_on:
       gitea:
-        condition: service_healthy
-      drone-server:
         condition: service_healthy
       sonarqube:
         condition: service_healthy

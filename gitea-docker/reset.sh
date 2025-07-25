@@ -67,6 +67,7 @@ docker-compose logs -f postgres_dbx
 docker exec -it drone_runner_ssh ping drone_server
 
 docker logs -f drone_runner_ssh
+docker logs -f drone-server
 
 docker exec -it drone_runner_ssh sh
 # dentro do container:
