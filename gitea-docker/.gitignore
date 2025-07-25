@@ -1,5 +1,0 @@
-.env
-data/
-logs/
-*.log
-sonarqube_data/
