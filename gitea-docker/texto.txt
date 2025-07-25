@@ -1,2 +1,34 @@
-riar um guia de configuração manual detalhado:
+criar um guia de configuração manual detalhado:
 CONFIGURACAO-PASSO-A-PASSO.md
+
+
+###### GIT ###########################################
+
+Fazer checkout de uma branch existente
+  git checkout nome-da-branch
+
+Criar uma nova branch a partir da branch atual
+  git checkout -b nome-da-nova-branch
+
+Fazer alterações e adicionar arquivos ao commit
+  git add .
+  git commit -m "Mensagem clara sobre a alteração"
+
+Enviar a branch para o repositório remoto (push)
+  git push origin nome-da-branch
+
+Atualizar sua branch local com as mudanças remotas (pull)
+  git pull origin nome-da-branch
+
+ Fazer merge da branch criada na main
+  Primeiro, mudar para a main:
+    git checkout main
+  
+  Atualizar a main:
+    git pull origin main
+
+  Fazer merge da branch criada para dentro da main:
+    git merge nome-da-branch
+  
+  Enviar a main atualizada para o repositório remoto
+    git push origin main
