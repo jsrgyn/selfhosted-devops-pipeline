@@ -6,6 +6,10 @@ rm -rf data/*
 #docker-compose up -d
 docker-compose --env-file .env up -d
 docker-compose --env-file .env up --build --force-recreate -d
+docker-compose --env-file .env up --build --force-recreate -d
+
+docker-compose down --volumes --remove-orphans
+docker-compose --env-file .env up --build --force-recreate -d
 
 #or
 
@@ -50,11 +54,14 @@ docker-compose rm --stop --force drone-server
 # Sobe apenas o drone-server
 docker-compose --env-file .env up -d --no-deps drone-server
 
+docker-compose --env-file .env up -d --no-deps nginx
+
 docker-compose --env-file .env up -d --force-recreate --no-deps drone-server nginx
 
 docker-compose restart nginx
 
 docker-compose logs -f drone-runner
+docker-compose logs -f postgres_dbx
 
 # A partir do container drone-runner-ssh
 docker exec -it drone_runner_ssh ping drone_server
@@ -101,3 +108,20 @@ docker-compose rm -f build-server-node
 
 #3. Subir com a nova imagem já aplicada
 docker-compose up -d --no-deps --force-recreate build-server-node
+
+# Confirme se as variáveis estão definidas :
+docker exec -it postgres_dbx env | grep -E 'POSTGRES|DB_PASSWORD'
+
+# Verifique se os usuários foram criados :
+docker exec -it postgres_dbx psql -U postgres -c "\du"
+
+#Verifique se os bancos existem :
+docker exec -it postgres_dbx psql -U postgres -c "\l"
+
+#Verifique os logs do PostgreSQL :
+docker-compose logs -f postgres_dbx
+
+#Permissões: Garanta que o script seja executável:
+chmod +x config/postgres/init-scripts/01-init-databases.sh
+
+docker-compose logs -f drone_server

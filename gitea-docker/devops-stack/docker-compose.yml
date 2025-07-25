@@ -4,7 +4,7 @@ services:
   gitea:
     extra_hosts:
       - "host.docker.internal:host-gateway"
-      - "drone.local:172.18.0.1"
+      - "drone.local:172.20.0.1"
     image: gitea/gitea:1.21
     container_name: gitea
     restart: unless-stopped
@@ -63,42 +63,53 @@ services:
       start_period: 40s
 
   drone-server:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "gitea.local:172.20.0.1" # Use o IP do Nginx ou do Host Gateway 
+      #- "gitea.local:172.18.0.3" # Use o IP do Nginx ou do Host Gateway 
     image: drone/drone:2.20
     container_name: drone_server
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    depends_on:
-      gitea:
-        condition: service_healthy
-      postgres_dbx:
-        condition: service_healthy
     networks:
       - devops-network
     environment:
-       TZ: ${TZ}
-       DRONE_DATABASE_DRIVER: postgres
-       DRONE_DATABASE_DATASOURCE: postgres://${DRONE_DATABASE_USER}:${DRONE_DB_PASSWORD}@postgres_dbx:${POSTGRES_PORT}/${DRONE_DATABASE}?sslmode=disable
-       DRONE_GITEA_SERVER: http://gitea:${GITEA_HTTP_PORT}
-       DRONE_GITEA_CLIENT_ID: ${DRONE_GITEA_CLIENT_ID}
-       DRONE_GITEA_CLIENT_SECRET: ${DRONE_GITEA_CLIENT_SECRET}
-       DRONE_RPC_SECRET: ${DRONE_RPC_SECRET}
-       DRONE_SERVER_HOST: ${DRONE_SERVER_HOST}
-       DRONE_SERVER_PROTO: ${DRONE_SERVER_PROTO}
-       DRONE_USER_CREATE: username:${DRONE_ADMIN_USER},admin:true
-       DRONE_AGENTS_ENABLED: "true"
-       DRONE_REGISTRATION_CLOSED: "true"
+      #- TZ: ${TZ}
+      # Drone Settings
+      #- DRONE_GITEA_SERVER=${GITEA_ROOT_REDE}
+      - DRONE_GITEA_SERVER=${DRONE_GITEA_SERVER}
+      - DRONE_GITEA_CLIENT_ID=${DRONE_GITEA_CLIENT_ID}
+      - DRONE_GITEA_CLIENT_SECRET=${DRONE_GITEA_CLIENT_SECRET}
+      - DRONE_RPC_SECRET=${DRONE_RPC_SECRET}
+      - DRONE_RPC_HOST=${DRONE_RPC_HOST}
+      # Esta configuração define a URL PÚBLICA do seu Drone
+      - DRONE_SERVER_HOST=${DRONE_SERVER_HOST}
+      #- DRONE_UI_PATH=${DRONE_UI_PATH}
+      - DRONE_SERVER_PROTO=${DRONE_SERVER_PROTO}
+      - DRONE_SERVER_PORT=${DRONE_SERVER_PORT}
+      # Database Settings
+      - DRONE_DATABASE_DRIVER=postgres
+      - DRONE_DATABASE_DATASOURCE=postgres://${DRONE_DATABASE_USER}:${DRONE_DB_PASSWORD}@postgres_dbx:5432/${DRONE_DATABASE}?sslmode=disable
+      # User Settings
+      - DRONE_USER_CREATE=username:${DRONE_ADMIN_USER},admin:true
+      # Security Settings
+      - DRONE_LOGS_PRETTY=true
+      - DRONE_LOGS_COLOR=true
+      - DRONE_GITEA_URL=${DRONE_GITEA_URL}
+      # Webhook Settings
+      - DRONE_WEBHOOK_ENDPOINT=${DRONE_WEBHOOK_ENDPOINT}
+      - DRONE_WEBHOOK_SECRET=${DRONE_WEBHOOK_SECRET}
+      # Runner Settings
+      - DRONE_AGENTS_ENABLED=true
     volumes:
       - ./data/drone:/data
       - ./config/drone:/etc/drone
-    ports:
-      - "8000:80"
-    command: ["sh", "-c", "drone server --config /etc/drone/config.toml && tail -f /dev/null"]
+    depends_on:
+      postgres_dbx:
+        condition: service_healthy
+      gitea:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "curl", "-f", "http://localhost:${DRONE_SERVER_PORT:-80}/healthz"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -113,27 +124,23 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    depends_on:
-      drone-server:
-        condition: service_healthy
     networks:
       - devops-network
+    volumes:
+      - ./secrets/ssh/id_rsa.pub:/root/.ssh/authorized_keys:ro
     environment:
-      TZ: ${TZ}
-      DRONE_RPC_HOST: ${DRONE_RPC_HOST}
-      DRONE_RPC_PROTO: ${DRONE_SERVER_PROTO}
-      DRONE_RPC_SECRET: ${DRONE_RPC_SECRET}
-      DRONE_RUNNER_NAME: ${DRONE_RUNNER_NAME}
-      DRONE_RUNNER_CAPACITY: "2"
-      DRONE_RUNNER_LABELS: "environment:ssh-build,arch:arm64,type:node"
-    ports:
-      - "3001:3000"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
+      - DRONE_RPC_PROTO=${DRONE_SERVER_PROTO}
+      - DRONE_RPC_HOST=${DRONE_RPC_HOST}
+      - DRONE_RPC_SECRET=${DRONE_RPC_SECRET}
+      - DRONE_RUNNER_CAPACITY=2
+      - DRONE_RUNNER_NAME=${DRONE_RUNNER_NAME}
+      #- DRONE_RUNNER_LABELS=environment:development,arch:arm64
+      - DRONE_RUNNER_LABELS=environment:ssh-build,arch:arm64
+      - DRONE_LOGS_PRETTY=true
+      - DRONE_LOGS_COLOR=true
+    depends_on:
+      drone-server:
+        condition: service_started
 
   build-server-node:
     build:
@@ -188,11 +195,9 @@ services:
     networks:
       - devops-network
     volumes:
-      - sonarqube_data:/opt/sonarqube/data
-      - sonarqube_extensions:/opt/sonarqube/extensions
-      - sonarqube_logs:/opt/sonarqube/logs
-    ports:
-      - "${SONARQUBE_PORT}:9000"
+      - ./data/sonarqube/data:/opt/sonarqube/data
+      - ./data/sonarqube/extensions:/opt/sonarqube/extensions
+      - ./data/sonarqube/logs:/opt/sonarqube/logs
     depends_on:
       postgres_dbx:
         condition: service_healthy
@@ -247,9 +252,9 @@ services:
   nginx:
     #extra_hosts:
     #  - "host.docker.internal:host-gateway"
-    #  - "gitea.local:172.18.0.1" # Use o IP do Nginx ou do Host Gateway
-    #  - "drone.local:172.18.0.1"
-    #  - "sonar.local:172.18.0.1"
+    #  - "gitea.local:172.20.0.1" # Use o IP do Nginx ou do Host Gateway
+    #  - "drone.local:172.20.0.1"
+    #  - "sonar.local:172.20.0.1"
     image: nginx:alpine
     container_name: nginx
     restart: unless-stopped
@@ -294,21 +299,3 @@ volumes:
   build_cache:
     name: build_cache
     driver: local
-  sonarqube_data:
-    name: sonarqube_data
-    driver_opts:
-      type: none
-      device: ./data/sonarqube/data
-      o: bind
-  sonarqube_extensions:
-    name: sonarqube_extensions
-    driver_opts:
-      type: none
-      device: ./data/sonarqube/extensions
-      o: bind
-  sonarqube_logs:
-    name: sonarqube_logs
-    driver_opts:
-      type: none
-      device: ./data/sonarqube/logs
-      o: bind

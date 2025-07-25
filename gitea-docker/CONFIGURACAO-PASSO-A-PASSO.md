@@ -325,3 +325,27 @@ Acesse http://drone.local/ e faça o login.
 
 mkdir -p ./ssh
 ssh-keygen -t rsa -b 4096 -f ./ssh/id_rsa -N ''
+
+
+-----------------
+
+com o comando:
+docker network inspect devops-network    
+verificar a faixa do IP e ajustar as faixa do 
+extra_hosts:
+    #  - "host.docker.internal:host-gateway"
+    #  - "gitea.local:172.20.0.1" # Use o IP do Nginx ou do Host Gateway
+    #  - "drone.local:172.20.0.1"
+    #  - "sonar.local:172.20.0.1"
+Ajustar o APP.ini do gitea para aceitar conexão por traz de um proxy 
+; Confia nos cabeçalhos enviados pelo Nginx
+ENABLE_REVERSE_PROXY_AUTHENTICATION = true
+ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = true
+ENABLE_REVERSE_PROXY_EMAIL = true
+REVERSE_PROXY_TRUSTED_PROXIES = 172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
+e
+DOMAIN           = ${GITEA_DOMAIN}
+HTTP_PORT        = 3000
+#ROOT_URL         = http://${GITEA_DOMAIN}:${GITEA_HTTP_PORT}/
+ROOT_URL         = http://${GITEA_DOMAIN}
+PROTOCOL         = http
