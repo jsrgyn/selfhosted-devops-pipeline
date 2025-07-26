@@ -45,7 +45,9 @@ services:
       - GITEA__server__ENABLE_REVERSE_PROXY_AUTHENTICATION=false
       - GITEA__server__ENABLE_REVERSE_PROXY_AUTO_REGISTRATION=false
       - GITEA__server__ENABLE_REVERSE_PROXY_EMAIL=false
-      - GITEA__server__REVERSE_PROXY_TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+      - GITEA__server__REVERSE_PROXY_TRUSTED_PROXIES=10.0.0.0/8,172.20.0.0/12,192.168.0.0/16
+      # - GITEA__webhook__ALLOWED_HOST_LIST=private
+      - GITEA__webhook__ALLOWED_HOST_LIST=172.20.0.0/16
     networks:
       - devops-network
     volumes:
@@ -130,6 +132,10 @@ services:
         condition: service_started
 
   build-server-node:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "gitea.local:172.20.0.1" 
+      - "sonar.local:172.20.0.1" 
     build:
       context: ./infra/docker/build-server
       dockerfile: Dockerfile
