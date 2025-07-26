@@ -32,3 +32,195 @@ Atualizar sua branch local com as mudanças remotas (pull)
   
   Enviar a main atualizada para o repositório remoto
     git push origin main
+
+###### Iniciando configuração do ambiente ###########################################
+
+Passo a Passo de Configuração – Gitea, Drone CI e SonarQube
+
+1. Reset do Ambiente
+
+Execute o script para limpar/resetar o ambiente:
+
+sh ./reset_clear.sh
+
+
+⸻
+
+2. Criar Conta no Gitea
+
+Acesse o Gitea: http://gitea.local
+Crie sua conta normalmente.
+
+⸻
+
+3. Configurar OAuth2 para o Drone CI
+
+3.1 Acesso como Administrador
+	•	Faça login como admin no Gitea.
+
+3.2 Criar Aplicação OAuth2
+	•	Vá em Settings → Applications.
+	•	Crie uma nova OAuth2 Application com os seguintes dados:
+	•	Application Name: Drone CI
+	•	Redirect URI: http://drone.local/login
+	•	Anote o Client ID e o Client Secret gerados.
+
+⸻
+
+3.3 Configurar o Drone CI com as Credenciais OAuth2
+
+3.3.1 Editar o arquivo .env
+
+Adicione os valores obtidos do Gitea:
+
+DRONE_GITEA_CLIENT_ID=sua-aplicacao-client-id-aqui
+DRONE_GITEA_CLIENT_SECRET=sua-aplicacao-client-secret-aqui
+
+3.3.2 Reiniciar os containers
+
+Execute:
+
+docker-compose --env-file .env up -d
+
+3.3.3 Acessar o Drone
+	•	Acesse: http://drone.local
+	•	Crie sua conta no Drone.
+
+⸻
+
+4. Acessar o SonarQube
+	•	URL: http://sonar.local
+	•	Credenciais padrão:
+	•	Login: admin
+	•	Senha: admin
+
+⸻
+
+Resultado
+
+Após esses passos, o ambiente com Gitea, Drone CI e SonarQube estará pronto para uso.
+
+###### Configurando os projetos no ambiente #########################################
+
+Segue a reorganização do conteúdo em formato lógico, estruturado e mais legível, mantendo todos os pontos importantes:
+
+⸻
+
+Configuração de Projetos no Ambiente (Gitea, Drone CI e SonarQube)
+
+1. Preparação do Ambiente
+	•	Gere chave SSH caso não exista:
+
+ssh-keygen -t rsa -b 4096 -f ./secrets/ssh/id_rsa -q -N ''
+
+
+⸻
+
+2. Configuração do Gitea
+
+2.1 Criação de Usuários e Repositório
+	1.	Primeiro usuário criado no Gitea será administrador (root).
+	2.	Crie usuários comuns.
+	3.	Crie o repositório de teste, exemplo: calculadora-api.
+	4.	Adicione o usuário comum como colaborador no repositório.
+	5.	Faça o commit inicial do projeto:
+
+rm -rf .git                  # Remove repositório anterior
+git init                     # Inicia novo repositório
+git checkout -b main         # Cria branch main
+git commit -m "first commit" # Primeiro commit
+git remote add origin http://gitea.local/Johnathan/calculadora-api.git
+git push -u origin main
+
+
+⸻
+
+2.2 Proteger a Branch Main
+	1.	Acesse Configurações do Repositório → Branches.
+	2.	Adicione proteção para main com as seguintes regras:
+
+	•	Push Direto: Desabilitado
+	•	Aprovação de PR: 1+ (mínimo um revisor)
+	•	Checks Obrigatórios:
+	•	continuous-integration/drone/push
+	•	continuous-integration/drone/pr
+	•	Descartar Aprovações Antigas: Habilitado
+	•	Status Checks Obrigatórios: Drone + SonarQube
+	•	Impedir Merge com Branch Desatualizada: Habilitado
+
+⸻
+
+3. Configuração do SonarQube
+
+3.1 Criar Projeto e Token
+	1.	Acesse http://sonar.local
+	2.	Vá em Projects → Add Project → Manually
+	3.	Preencha:
+	•	Project display name: API da Calculadora
+	•	Project key: calculadora-api (mesmo do sonar-project.properties)
+	4.	Clique em Generate Token
+	•	Nome do token: droneci-calculadora-api-token
+	•	Copie e guarde o token (não será mostrado novamente).
+
+⸻
+
+4. Configuração do Drone CI
+
+4.1 Sincronizar Projeto com o Gitea
+	1.	Acesse http://drone.local
+	2.	Desative a opção Active Only e clique em Sync
+	3.	Ative o repositório calculadora-api.
+
+⸻
+
+4.2 Configurar Segredos no Drone
+
+Acesse Settings → Secrets do repositório e crie os seguintes segredos:
+
+4.2.1 SSH para Build
+	•	Name: BUILD_SERVER_SSH_KEY
+	•	Value: conteúdo da sua chave privada id_rsa (incluindo BEGIN/END)
+	•	Allow Pull Requests: desmarcado
+
+4.2.2 SonarQube Token
+	•	Name: SONAR_TOKEN
+	•	Value: token gerado no SonarQube
+	•	Allow Pull Requests: marcado
+
+4.2.3 SonarQube URL
+	•	Name: SONAR_HOST_URL
+	•	Value: http://sonar.local
+	•	Allow Pull Requests: marcado
+
+⸻
+
+4.3 Configuração de Webhook
+
+Automática (preferencial)
+	1.	Ative o repositório no Drone (já cria o webhook automaticamente no Gitea).
+	2.	Verifique em Gitea → Configurações → Webhooks se o webhook do Drone foi criado.
+
+Manual (caso automático falhe)
+	1.	Gere o segredo manual no Drone em Settings → Webhooks.
+	2.	No Gitea, vá em Configurações → Webhooks → Adicionar Webhook e configure:
+	•	URL: http://drone.local/hook
+	•	Método: POST
+	•	Segredo: cole o valor gerado
+	•	Eventos: Push, Pull Request, Tag
+	•	Marque Ativo e salve
+	3.	Teste o webhook clicando em Test Delivery no Gitea (deve retornar HTTP 200).
+
+⸻
+
+4.4 Configurar sonar-project.properties
+	•	Confirme que o projeto possui o arquivo sonar-project.properties na raiz com a chave correta (projectKey: calculadora-api).
+
+⸻
+
+5. Resultado Esperado
+	•	Gitea configurado com repositório protegido e usuários criados.
+	•	Drone CI integrado ao Gitea e com segredos configurados para build e análise.
+	•	SonarQube pronto para análises automatizadas.
+
+⸻
+

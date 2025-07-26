@@ -1,0 +1,26 @@
+
+sqp_8ce8bec8bda8b99d538fa88549e43f297a4e2789
+
+
+Fase 1: Configuração para Desenvolvedor (SonarLint)
+Esta fase não requer configuração no Gitea, Drone ou SonarQube (além de já estarem no ar). A configuração é toda local, no VS Code do desenvolvedor.
+
+
+Passo a Passo para o Desenvolvedor:
+
+Instalar a Extensão: No VS Code, vá para a aba de Extensões e procure por SonarLint. Instale a oficial, da SonarSource.
+Conectar ao Servidor (Connected Mode):
+Abra a Paleta de Comandos do VS Code (Ctrl+Shift+P ou Cmd+Shift+P).
+Digite SonarLint: Open SonarLint view e abra a aba do SonarLint na barra lateral.
+Clique em "Connect to SonarQube or SonarCloud".
+Siga os passos:
+Enter SonarQube URL: http://sonar.local
+Select authentication method: Token
+Enter token: Vá para a UI do SonarQube -> My Account -> Security -> Generate Tokens. Gere um token para o seu usuário (ex: vsc-johnathan) e cole no VS Code.
+Associar o Projeto:
+Ainda na aba SonarLint, você verá sua conexão. Clique no ícone de "Update binding to SonarQube/SonarCloud".
+Selecione o projeto correspondente na lista: calculadora-api.
+Resultado: Agora, ao abrir qualquer arquivo .js do seu projeto, o SonarLint irá sublinhar os problemas usando as regras do seu servidor, dando feedback instantâneo.
+
+--- Task ----
+01 - Crie o arquivo .dockerignore para evitar copiar arquivos desnecessários:
