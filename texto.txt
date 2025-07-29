@@ -33,6 +33,13 @@ Atualizar sua branch local com as mudanças remotas (pull)
   Enviar a main atualizada para o repositório remoto
     git push origin main
 
+###### Configurar user no git local no projeto ######################################
+
+git config user.name "Seu Nome"
+git config user.email "seu-email@dominio.com"
+
+git config --list
+
 ###### Iniciando configuração do ambiente ###########################################
 
 Passo a Passo de Configuração – Gitea, Drone CI e SonarQube
@@ -102,10 +109,6 @@ Após esses passos, o ambiente com Gitea, Drone CI e SonarQube estará pronto pa
 
 ###### Configurando os projetos no ambiente #########################################
 
-Segue a reorganização do conteúdo em formato lógico, estruturado e mais legível, mantendo todos os pontos importantes:
-
-⸻
-
 Configuração de Projetos no Ambiente (Gitea, Drone CI e SonarQube)
 
 1. Preparação do Ambiente
@@ -128,6 +131,7 @@ ssh-keygen -t rsa -b 4096 -f ./secrets/ssh/id_rsa -q -N ''
 rm -rf .git                  # Remove repositório anterior
 git init                     # Inicia novo repositório
 git checkout -b main         # Cria branch main
+git add .                    # Adicionar todos arquivos
 git commit -m "first commit" # Primeiro commit
 git remote add origin http://gitea.local/Johnathan/calculadora-api.git
 git push -u origin main
