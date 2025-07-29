@@ -132,7 +132,7 @@ rm -rf .git                  # Remove repositório anterior
 git init                     # Inicia novo repositório
 git checkout -b main         # Cria branch main
 git add .                    # Adicionar todos arquivos
-git commit -m "first commit" # Primeiro commit
+git commit -m "first commit"  # Primeiro commit
 git remote add origin http://gitea.local/Johnathan/calculadora-api.git
 git push -u origin main
 
@@ -144,7 +144,7 @@ git push -u origin main
 	2.	Adicione proteção para main com as seguintes regras:
 
 	•	Push Direto: Desabilitado
-	•	Aprovação de PR: 1+ (mínimo um revisor)
+	•	Aprovação de PR: 2+ (mínimo um revisor)
 	•	Checks Obrigatórios:
 	•	continuous-integration/drone/push
 	•	continuous-integration/drone/pr

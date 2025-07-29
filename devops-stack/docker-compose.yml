@@ -162,7 +162,8 @@ services:
       - ./data/build-server:/root/builds
       - build_cache:/root/.cache
     ports:
-      - "8022:22"
+      #- "8022:22"
+      - "8000:8000"
     healthcheck:
       test: ["CMD", "pgrep", "sshd"]
       interval: 30s

@@ -1,5 +1,5 @@
 
-sqp_8d8a528a5f5ec549646d2636ccd8962306ca9209
+sqp_2b0077c6220729a51fd018f21cd4eb4b559c4055
 
 
 Fase 1: Configuração para Desenvolvedor (SonarLint)
