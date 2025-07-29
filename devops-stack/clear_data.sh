@@ -7,6 +7,11 @@ echo "🧹 Iniciando limpeza de diretórios de dados..."
 # Lista de diretórios a serem limpos
 directories=(
     "data/gitea/repositories"
+    "data/gitea/git/repositories"
+    "data/gitea/gitea"
+    "data/gitea/ssh"
+    "data/gitea/git/.ssh"
+    "data/gitea/git/lfs"
     "data/gitea/data"
     "data/gitea/log"
     "data/gitea/avatars"
