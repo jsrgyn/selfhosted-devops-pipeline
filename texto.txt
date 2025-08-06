@@ -128,12 +128,13 @@ ssh-keygen -t rsa -b 4096 -f ./secrets/ssh/id_rsa -q -N ''
 	4.	Adicione o usuário comum como colaborador no repositório.
 	5.	Faça o commit inicial do projeto:
 
+Pasta padrão do projeto de teste é ./prj_teste/calculadora-api
 rm -rf .git                  # Remove repositório anterior
 git init                     # Inicia novo repositório
 git checkout -b main         # Cria branch main
 git add .                    # Adicionar todos arquivos
 git commit -m "first commit"  # Primeiro commit
-git remote add origin http://gitea.local/Johnathan/calculadora-api.git
+git remote add origin URL_repositorio
 git push -u origin main
 
 
@@ -184,7 +185,7 @@ Acesse Settings → Secrets do repositório e crie os seguintes segredos:
 4.2.1 SSH para Build
 	•	Name: BUILD_SERVER_SSH_KEY
 	•	Value: conteúdo da sua chave privada id_rsa (incluindo BEGIN/END)
-	•	Allow Pull Requests: desmarcado
+	•	Allow Pull Requests: marcado
 
 4.2.2 SonarQube Token
 	•	Name: SONAR_TOKEN
@@ -225,6 +226,10 @@ Manual (caso automático falhe)
 	•	Gitea configurado com repositório protegido e usuários criados.
 	•	Drone CI integrado ao Gitea e com segredos configurados para build e análise.
 	•	SonarQube pronto para análises automatizadas.
+
+6. Testar o projeto
+  http://localhost:8000/api/sum?a=5&b=3 
+  
 
 ⸻
 
