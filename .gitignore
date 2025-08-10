@@ -1,4 +1,171 @@
+.env
+*.env
+data/
+!data/.gitkeep
+secrets/
+!secrets/.gitkeep
+*.log
+logs/
+backup/automated/
+backup/manual/
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+docker-compose.override.yml
+*.tmp
+*.temp
+infra/docker/*/target/
+infra/docker/*/dist/
+node_modules/
+### Diretórios críticos não versionáveis ###
+# Dados persistentes
+/data/
+
+# Secrets e informações sensíveis
+/secrets/
+
+# Backups gerados
+/backup/automated/
+/backup/manual/
+
+# Logs de aplicação
+*.log
+/logs/
+
+
+### Arquivos de configuração sensíveis ###
+# Variáveis de ambiente
+.env
+.env*.local
+
+# Overrides de compose com possíveis credenciais
+docker-compose.override.yml
+
+
+### Artefatos de build e runtime ###
+# Docker build artifacts
+**/Dockerfile
+**/.dockerignore
+!infra/docker/**/Dockerfile  # Mantém os Dockerfiles oficiais
+
+# Artefatos de compilação
+/target/
+/dist/
+/build/
+*.jar
+*.war
+*.ear
+
+
+### Configurações de IDEs e editores ###
+# IDE - VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# IDE - IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# IDE - Eclipse
+.settings/
+.project
+.classpath
+bin/
+
+
 ### Sistemas operacionais ###
 # macOS
 .DS_Store
 ._*
+.AppleDouble
+.LSOverride
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.com.apple.timemachine.supported
+.metadata_never_index
+*.swp
+*~.nib
+*~.plist
+*~.pbxuser
+*~.mode1v3
+*~.mode2v3
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+
+### Artefatos de ferramentas específicas ###
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# Ansible
+*.retry
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+
+# Java
+.gradle/
+build/
+!**/build.gradle  # Mantém arquivos de build
+
+
+### Arquivos temporários e caches ###
+# Cache geral
+.cache/
+
+# Arquivos temporários
+*.tmp
+*.bak
+*.swp
+*~
+~$*
+
+# Cloud-init
+cloud-init.log
+cloud-init-output.log
+
+
+### Exceções controladas ###
+# Mantém arquivos .example e templates
+!.env.example
+!docker-compose.override.yml.example
+!/config/**/*.example
+!/config/**/*.template
+
+# Mantém estrutura de diretórios vazia necessária
+!/config/nginx/ssl/certs/.gitkeep
+!/config/nginx/ssl/private/.gitkeep
+!/secrets/ssh/.gitkeep
+!/secrets/ssl/certificates/.gitkeep
+!/secrets/ssl/keys/.gitkeep
+!/backup/automated/.gitkeep
+!/backup/manual/.gitkeep
