@@ -63,6 +63,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-external-labels: "container={{.Name}},image={{.ImageName}},environment=devops"
 
   drone-server:
     extra_hosts:
@@ -106,6 +111,11 @@ services:
     volumes:
       - ./data/drone:/data
       - ./config/drone:/etc/drone
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-external-labels: "container={{.Name}},image={{.ImageName}},environment=devops"
 
   # Drone Runner - CI/CD Runner
   # -------------------- DRONE SSH RUNNER --------------------
@@ -130,6 +140,11 @@ services:
     depends_on:
       drone-server:
         condition: service_started
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-external-labels: "container={{.Name}},image={{.ImageName}},environment=devops"
 
   build-server-node:
     extra_hosts:
@@ -146,10 +161,10 @@ services:
     hostname: build-server-node
     restart: unless-stopped
     logging:
-      driver: "json-file"
+      driver: loki
       options:
-        max-size: "10m"
-        max-file: "3"
+        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-external-labels: "container={{.Name}},image={{.ImageName}},environment=devops"
     environment:
       TZ: ${TZ}
       SSH_ENABLE_ROOT: "true"
@@ -208,16 +223,21 @@ services:
       nofile:
         soft: 65536
         hard: 65536
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-external-labels: "container={{.Name}},image={{.ImageName}},environment=devops"
 
   postgres_dbx:
     image: postgres:16
     container_name: postgres_dbx
     restart: unless-stopped
     logging:
-      driver: "json-file"
+      driver: loki
       options:
-        max-size: "10m"
-        max-file: "3"
+        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-external-labels: "container={{.Name}},image={{.ImageName}},environment=devops"
     environment:
       TZ: ${TZ}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -253,10 +273,10 @@ services:
     container_name: nginx
     restart: unless-stopped
     logging:
-      driver: "json-file"
+      driver: loki
       options:
-        max-size: "10m"
-        max-file: "3"
+        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-external-labels: "container={{.Name}},image={{.ImageName}},environment=devops"
     ports:
       - "${NGINX_PORT}:80"
       - "${NGINX_SSL_PORT}:443"
@@ -278,6 +298,64 @@ services:
         condition: service_healthy
       sonarqube:
         condition: service_healthy
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - devops-network
+    ports:
+      - "9090:9090"
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml
+    networks:
+      - devops-network
+    ports:
+      - "3100:3100"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - devops-network
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+      - loki
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    networks:
+      - devops-network
+    ports:
+      - "9100:9100"
 
 networks:
   devops-network:
@@ -291,3 +369,5 @@ volumes:
   build_cache:
     name: build_cache
     driver: local
+  prometheus_data:
+  grafana_data:

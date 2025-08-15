@@ -260,3 +260,12 @@ install-deps: ## Instala dependências do sistema
 	@which docker-compose >/dev/null || (echo "$(RED)❗ Docker Compose não instalado$(NC)" && exit 1)
 	@which make >/dev/null || (echo "$(RED)❗ Make não instalado$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Todas as dependências estão instaladas!$(NC)"
+
+monitor-up:
+	docker-compose up -d prometheus loki grafana node-exporter
+
+monitor-down:
+	docker-compose stop prometheus loki grafana node-exporter
+
+monitor-logs:
+	docker-compose logs -f prometheus loki grafana
