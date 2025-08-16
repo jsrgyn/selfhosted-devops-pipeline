@@ -1,19 +1,28 @@
 # Makefile para DevOps Stack
 # Uso: make [comando]
 
-# Variáveis
-COMPOSE_FILE = docker-compose.yml
-PROJECT_NAME = devops-stack
-BACKUP_DIR = ./backup/$(shell date +%Y%m%d_%H%M%S)
+# =============================================================================
+# VARIÁVEIS
+# =============================================================================
+COMPOSE_FILE := docker-compose.yml
+PROJECT_NAME := devops-stack
+BACKUP_DIR := ./backup/$(shell date +%Y%m%d_%H%M%S)
+ENV_FILE := .env
 
 # Cores para output
-RED = \033[0;31m
-GREEN = \033[0;32m
-YELLOW = \033[1;33m
-BLUE = \033[0;34m
-NC = \033[0m # No Color
+RED := \033[0;31m
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
 
-.PHONY: help setup up down restart status logs clean backup restore health check-env
+# =============================================================================
+# COMANDOS PÚBLICOS
+# =============================================================================
+.PHONY: help setup up down restart status logs clean backup restore health check-env \
+        build dev shell monitor security-scan generate-secrets ports info test install-deps \
+        monitor-up monitor-down monitor-logs clean-reports runbook diagrams adr metrics-up metrics-logs \
+        restart-service logs-service backup-db
 
 # Comando padrão
 .DEFAULT_GOAL := help
@@ -22,19 +31,14 @@ NC = \033[0m # No Color
 help: ## Exibe esta ajuda
 	@echo "$(BLUE)DevOps Stack - Comandos Disponíveis:$(NC)"
 	@echo ""
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(YELLOW)%-15s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
-	@echo ""
-	@echo "$(GREEN)Exemplo de uso:$(NC)"
-	@echo "  make setup    # Primeira configuração"
-	@echo "  make up       # Subir todos os serviços"
-	@echo "  make logs     # Ver logs em tempo real"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 
 setup: ## Configuração inicial do projeto
 	@echo "$(BLUE)🚀 Configurando o ambiente DevOps...$(NC)"
-	@if [ ! -f .env ]; then \
+	@if [ ! -f $(ENV_FILE) ]; then \
 		echo "$(YELLOW)⚠️  Criando .env a partir do template...$(NC)"; \
-		cp .env.example .env; \
+		cp .env.example $(ENV_FILE); \
 		echo "$(RED)❗ IMPORTANTE: Configure suas variáveis no arquivo .env antes de continuar!$(NC)"; \
 		exit 1; \
 	fi
@@ -223,7 +227,7 @@ generate-secrets: ## Gera novos secrets para os serviços
 
 ## Utilitários
 check-env: ## Verifica se o arquivo .env existe
-	@if [ ! -f .env ]; then \
+	@if [ ! -f $(ENV_FILE) ]; then \
 		echo "$(RED)❗ Arquivo .env não encontrado!$(NC)"; \
 		echo "$(YELLOW)💡 Execute 'make setup' primeiro$(NC)"; \
 		exit 1; \
@@ -243,11 +247,18 @@ ports: ## Lista as portas expostas
 	@echo "Nginx (HTTPS): 443"
 	@echo "PostgreSQL: 5432"
 	@echo "Build Server: 8000"
+	@echo "SonarQube: 9000"
+	@echo "Prometheus: 9090"
+	@echo "Loki: 3100"
+	@echo "Grafana: 3001"
+	@echo "cAdvisor: 8080"
+	@echo "Node Exporter: 9100"
 	@echo ""
 	@echo "$(BLUE)🌐 Acessos via proxy:$(NC)"
-	@echo "Gitea: https://gitea.local"
-	@echo "Drone: https://drone.local"
-	@echo "SonarQube: https://sonar.local"
+	@echo "Gitea: http://gitea.local"
+	@echo "Drone: http://drone.local"
+	@echo "SonarQube: http://sonar.local"
+	@echo "Grafana: http://grafana.local:3001"
 
 test: ## Executa testes básicos de conectividade
 	@echo "$(BLUE)🧪 Executando testes básicos...$(NC)"
@@ -261,43 +272,38 @@ install-deps: ## Instala dependências do sistema
 	@which make >/dev/null || (echo "$(RED)❗ Make não instalado$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Todas as dependências estão instaladas!$(NC)"
 
-monitor-up:
-	docker-compose up -d prometheus loki grafana node-exporter
+## Comandos específicos para monitoramento
+monitor-up: ## Inicia serviços de monitoramento
+	@echo "$(BLUE)📊 Iniciando monitoramento...$(NC)"
+	@docker-compose -f $(COMPOSE_FILE) up -d prometheus loki grafana node-exporter cadvisor
+	@echo "$(GREEN)✅ Serviços de monitoramento iniciados!$(NC)"
 
-monitor-down:
-	docker-compose stop prometheus loki grafana node-exporter
+monitor-down: ## Para serviços de monitoramento
+	@echo "$(YELLOW)🛑 Parando serviços de monitoramento...$(NC)"
+	@docker-compose -f $(COMPOSE_FILE) stop prometheus loki grafana node-exporter cadvisor
+	@echo "$(GREEN)✅ Serviços de monitoramento parados!$(NC)"
 
-monitor-logs:
-	docker-compose logs -f prometheus loki grafana
+monitor-logs: ## Mostra logs dos serviços de monitoramento
+	@echo "$(BLUE)📋 Logs de monitoramento (Ctrl+C para sair):$(NC)"
+	@docker-compose -f $(COMPOSE_FILE) logs -f prometheus loki grafana
 
-clean-reports:
-	./scripts/clean-reports.sh
+clean-reports: ## Limpa relatórios de testes e scans
+	@echo "$(YELLOW)🧹 Limpando relatórios...$(NC)"
+	@./scripts/clean-reports.sh || echo "$(YELLOW)⚠️  Script de limpeza não encontrado$(NC)"
+	@echo "$(GREEN)✅ Relatórios limpos!$(NC)"
 
-security-scan:
-	docker-compose exec build-server-node dependency-check --project "test-scan" --scan /tmp/sample-project
-
-.PHONY: runbook diagrams adr
-
-runbook:
+runbook: ## Executa um runbook (uso: make runbook RUNBOOK=meu-runbook.md)
 	@echo "Executando runbook: $(RUNBOOK)"
 	@./docs/scripts/runbook-runner.sh docs/runbooks/$(RUNBOOK)
 
-diagrams:
+diagrams: ## Gera diagramas da arquitetura
 	@./docs/scripts/generate-diagrams.sh
 
-adr:
+adr: ## Cria uma nova ADR (uso: make adr TITLE="Título da ADR")
 	@adr-tools new "Adicionar nova ADR"
 
-metrics-up:
-	docker-compose up -d cadvisor
+metrics-up: ## Inicia métricas (cAdvisor) - alias para monitor-up
+	@$(MAKE) monitor-up
 
-metrics-logs:
-	docker-compose logs -f cadvisor
-
-.PHONY: backup health-check
-
-backup:
-	./backup/scripts/backup-all.sh
-
-health-check:
-	./health-check.sh
+metrics-logs: ## Mostra logs do cAdvisor - alias para monitor-logs
+	@docker-compose -f $(COMPOSE_FILE) logs -f cadvisor

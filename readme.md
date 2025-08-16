@@ -1,10 +1,8 @@
-### README.md - DevOps Stack
-
-# DevOps Stack Completa
-
-Esta stack DevOps integra todas as ferramentas essenciais para desenvolvimento moderno, CI/CD, monitoramento e gestão de código em uma única solução containerizada.
+# DevOps Stack
 
 ![DevOps Architecture](docs/architecture/diagrams/devops-architecture.png)
+
+Esta stack DevOps integra todas as ferramentas essenciais para desenvolvimento moderno, CI/CD, monitoramento e gestão de código em uma única solução containerizada com suporte para arquitetura ARM64.
 
 ## 🚀 Como Iniciar
 
@@ -13,232 +11,222 @@ Esta stack DevOps integra todas as ferramentas essenciais para desenvolvimento m
 - Docker Compose 2.0+
 - Acesso root/sudo
 - 4GB RAM mínimo (8GB recomendado)
+- Linux (otimizado para ARM64)
 
 ### Configuração Inicial
 ```bash
-# 1. Clonar repositório
+# Clone o repositório
 git clone https://github.com/seu-usuario/devops-stack.git
 cd devops-stack
 
-# 2. Configurar ambiente
-cp .env.example .env
-nano .env  # Editar variáveis conforme necessário
+# Execute o setup inicial
+make setup
 
-# 3. Configurar DNS local (Linux/Mac)
-echo "127.0.0.1 gitea.local drone.local sonar.local grafana.local dashboard.local" | sudo tee -a /etc/hosts
+# Configure as variáveis de ambiente
+nano .env  # Edite conforme sua infraestrutura
 
-# 4. Iniciar a stack
+# Configure o DNS local (Linux/Mac)
+echo "127.0.0.1 gitea.local drone.local sonar.local grafana.local" | sudo tee -a /etc/hosts
+
+# Inicie toda a stack
 make up
 ```
 
-### Comandos Úteis
+### Comandos Essenciais
 ```bash
-# Iniciar toda a stack
+# Iniciar stack completa
 make up
 
-# Parar a stack
+# Parar serviços
 make down
 
-# Backup manual
+# Backup completo (dados + configs)
 make backup
 
 # Verificar saúde dos serviços
-make health-check
+make health
 
-# Monitorar logs
+# Acessar logs em tempo real
 make logs
+
+# Acessar shell em um container
+make shell SERVICE=sonarqube
 ```
 
-## 🌐 Como Acessar Cada Serviço
+## 🌐 Serviços Integrados
 
-| Serviço         | URL                          | Credenciais Padrão           |
-|-----------------|------------------------------|-----------------------------|
-| Gitea (Git)     | http://gitea.local           | admin / senha_do_admin      |
-| Drone CI        | http://drone.local           | Usuário do Gitea            |
-| SonarQube       | http://sonar.local           | admin / admin               |
-| Grafana         | http://grafana.local         | $GRAFANA_ADMIN_USER / $GRAFANA_ADMIN_PASSWORD |
-| Prometheus      | http://prometheus.local:9090 | -                           |
-| cAdvisor        | http://cadvisor.local:8080   | -                           |
-| Dashboard       | http://dashboard.local       | -                           |
+| Serviço               | URL                          | Porta    | Descrição                          |
+|-----------------------|------------------------------|----------|------------------------------------|
+| **Gitea**             | http://gitea.local           | 3000     | Git server com UI                 |
+| **Drone CI**          | http://drone.local           | 80       | Pipeline CI/CD                    |
+| **SonarQube**         | http://sonar.local           | 9000     | Análise de qualidade de código    |
+| **Grafana**           | http://grafana.local:3001    | 3001     | Dashboard de monitoramento        |
+| **Prometheus**        | http://localhost:9090        | 9090     | Coleta de métricas                |
+| **Loki**              | http://localhost:3100        | 3100     | Armazenamento de logs             |
+| **cAdvisor**          | http://localhost:8080        | 8080     | Monitoramento de containers       |
+| **Build Server**      | http://localhost:8000        | 8000     | Ambiente de execução CI           |
+| **PostgreSQL**        | postgres_dbx:5432            | 5432     | Banco de dados principal          |
 
-> **Nota:** As credenciais são definidas no arquivo `.env`
+**Credenciais Padrão**:  
+- Gitea: `admin / senha_do_admin` (definida no .env)  
+- SonarQube: `admin / admin`  
+- Grafana: `$GRAFANA_ADMIN_USER / $GRAFANA_ADMIN_PASSWORD` (definidos no .env)
 
-## 💾 Como Fazer Backup
+## 🛠 Fluxo CI/CD Integrado
 
-### Backup Automático
-- Executado diariamente às 02:00 AM
-- Armazenado em `./backup/automated/`
-- Inclui:
-  - Banco de dados PostgreSQL
-  - Dados do Gitea
-  - Dados do SonarQube
-  - Metadados do Docker
-
-### Backup Manual
-```bash
-# Executar backup completo
-make backup
-
-# Localização dos backups:
-ls -lh backup/automated/*/*
+```mermaid
+graph LR
+    A[Git Push] --> B[Gitea]
+    B --> C{Webhook}
+    C --> D[Drone CI]
+    D --> E[Build Server]
+    E --> F[Testes]
+    E --> G[Análise SonarQube]
+    E --> H[Deploy]
+    F --> I[Relatórios]
+    G --> I
 ```
 
-### Restauração
-```bash
-# 1. Identificar backup mais recente
-LATEST_BACKUP=$(ls -td ./backup/automated/* | head -1)
-
-# 2. Parar serviços relacionados
-docker-compose stop postgres_dbx gitea sonarqube
-
-# 3. Restaurar PostgreSQL
-gunzip < $LATEST_BACKUP/postgres_*.sql.gz | docker-compose exec -T postgres_dbx psql -U ${POSTGRES_USER}
-
-# 4. Restaurar Gitea
-tar -xzf $LATEST_BACKUP/gitea_*.tar.gz -C ./data/gitea
-
-# 5. Restaurar SonarQube
-tar -xzf $LATEST_BACKUP/sonarqube_*.tar.gz -C ./data/sonarqube/data
-
-# 6. Reiniciar serviços
-docker-compose up -d
-```
-
-## 🛠 Como Adicionar Novos Repositórios no Drone
-
-### 1. Ativar repositório no Drone
-1. Acesse http://drone.local
-2. Faça login com sua conta do Gitea
-3. Navegue até seu repositório
-4. Clique em "ACTIVATE REPOSITORY"
-
-### 2. Configurar o arquivo .drone.yml
-Crie um arquivo `.drone.yml` na raiz do repositório:
-
+### Configuração de Pipeline (.drone.yml)
 ```yaml
 kind: pipeline
 type: ssh
-name: CI Pipeline
+name: Node.js Pipeline
 
 trigger:
-  event: [push, pull_request, tag]
+  branch: [main, develop]
+  event: [push, pull_request]
 
 server:
   host: build-server-node
   user: root
   ssh_key:
-    from_secret: BUILD_SERVER_SSH_KEY
+    from_secret: ssh_private_key
 
 steps:
-  - name: Build and Test
+  - name: Install Dependencies
     commands:
-      - echo "Iniciando pipeline..."
       - npm install
+
+  - name: Run Tests
+    commands:
       - npm test
+
+  - name: SonarQube Analysis
+    commands:
+      - sonar-scanner -Dsonar.projectKey=my-project -Dsonar.host.url=http://sonar.local -Dsonar.login=${SONAR_TOKEN}
+
+  - name: Security Scan
+    commands:
+      - trivy fs .
+      - dependency-check --scan . --format HTML
 ```
 
-### 3. Adicionar segredos (opcional)
-Para variáveis sensíveis como tokens de API:
+## 🔍 Monitoramento e Observabilidade
 
+### Stack Integrada:
+- **Prometheus**: Coleta de métricas
+- **Loki**: Armazenamento de logs
+- **Grafana**: Visualização unificada
+- **cAdvisor**: Métricas de containers
+- **Node Exporter**: Métricas do host
+
+### Painéis Recomendados:
+1. **Visão Geral da Stack** [ID: 1860]
+2. **Desempenho de Containers** [ID: 193]
+3. **Análise de Logs** (Loki datasource)
+4. **Métricas de CI/CD** (Drone + Build Server)
+
+![Grafana Dashboard](docs/architecture/diagrams/grafana-dashboard.png)
+
+## 💾 Estratégia de Backup
+
+### Backup Automatizado:
 ```bash
-drone secret add \
-  --name SONAR_TOKEN \
-  --value seu_token_sonar \
-  --repository seu-usuario/seu-repositorio
+0 2 * * * /backup/scripts/backup-all.sh
+0 3 * * * /backup/scripts/rotate-backups.sh
 ```
 
-### 4. Testar o pipeline
-Faça um push para o repositório:
+### Estrutura de Backups:
+```
+backup/
+├── automated/
+│   └── 20240520_020000/
+│       ├── postgres_full_backup.sql
+│       ├── volumes_backup.tar.gz
+│       ├── config_backup.tar.gz
+│       └── secrets_backup.tar.gz.gpg
+└── manual/
+    └── 20240520_120000/...
+```
+
+### Restauração Completa:
 ```bash
-git add .drone.yml
-git commit -m "Adiciona pipeline CI"
-git push origin main
+# Identifique o backup
+BACKUP_DIR=./backup/automated/20240520_020000
+
+# Execute a restauração
+make restore BACKUP_DIR=$BACKUP_DIR
 ```
 
-## 🔍 Monitoramento e Métricas
-
-### Painéis Disponíveis
-1. **Visão Geral da Stack**: ID 1860
-2. **Desempenho de Containers**: ID 193
-3. **Métricas de Aplicação**: ID 14282
-4. **Logs Consolidados**: Configurar fonte Loki
-
-Para importar:
-1. Acesse http://grafana.local
-2. Navegue para "Create" > "Import"
-3. Insira o ID do dashboard
-
-### Consultas Úteis
-```promql
-# Uso de CPU por container
-sum(rate(container_cpu_usage_seconds_total[5m])) by (container_label_com_docker_compose_service)
-
-# Memória utilizada
-container_memory_working_set_bytes{container_label_com_docker_compose_service!=""}
-
-# Healthcheck status
-container_health_status{state!="healthy"}
-```
-
-## 🧪 Testes e Qualidade
-
-### Fluxo de CI
-1. Push/Pull Request inicia pipeline
-2. Etapas sequenciais:
-   - Análise estática (lint)
-   - Testes unitários
-   - Verificação de segurança (Trivy)
-   - Análise de qualidade (SonarQube)
-   - Deploy condicional
-
-### Executar testes localmente
-```bash
-# Testes de unidade
-docker-compose exec build-server-node npm test
-
-# Verificação de segurança
-docker-compose exec build-server-node trivy fs .
-
-# Análise SonarQube
-docker-compose exec build-server-node sonar-scanner
-```
-
-## 🔒 Segurança
-
-### Melhores Práticas
-1. **Atualize regularmente**:
-   ```bash
-   docker-compose pull
-   docker-compose up -d --force-recreate
-   ```
-   
-2. **Gere novos secrets**:
-   ```bash
-   openssl rand -hex 32
-   ```
-
-3. **Revise vulnerabilidades**:
-   ```bash
-   make security-scan
-   ```
-
-4. **Acesse relatórios**:
-   http://dashboard.local/reports/
-
-## 📁 Estrutura de Diretórios
+## 📁 Estrutura do Projeto
 
 ```
 devops-stack/
-├── backup/          # Scripts e dados de backup
-├── config/          # Configurações de serviços
-├── data/            # Dados persistentes
-├── docs/            # Documentação técnica
-├── infra/           # Definições de infraestrutura
-├── monitoring/      # Configurações de monitoramento
-├── scripts/         # Scripts utilitários
-├── secrets/         # Dados sensíveis (não versionado)
-└── tests/           # Testes automatizados
+├── backup/               # Scripts e dados de backup
+├── config/               # Configurações de serviços
+│   ├── nginx/            # Configuração do proxy reverso
+│   ├── gitea/            # Configuração do Gitea
+│   ├── drone/            # Configuração do Drone
+│   └── postgres/         # Scripts de inicialização do PostgreSQL
+├── data/                 # Dados persistentes
+│   ├── gitea/            # Repositórios e dados do Gitea
+│   ├── sonarqube/        # Dados do SonarQube
+│   ├── drone/            # Dados do Drone CI
+│   └── postgres/         # Dados do PostgreSQL
+├── docs/                 # Documentação técnica
+│   ├── architecture/     # Diagramas de arquitetura
+│   └── runbooks/         # Procedimentos operacionais
+├── infra/                # Definições de infraestrutura
+│   └── docker/           # Dockerfiles customizados
+├── monitoring/           # Configurações de monitoramento
+│   ├── prometheus/       # Configuração do Prometheus
+│   ├── loki/             # Configuração do Loki
+│   └── grafana/          # Dashboards e provisionamento
+├── scripts/              # Scripts utilitários
+├── secrets/              # Dados sensíveis (não versionado)
+├── tests/                # Testes automatizados
+│   ├── integration/      # Testes de integração
+│   └── smoke/            # Testes de fumaça
+├── docker-compose.yml    # Definição de todos os serviços
+├── Makefile              # Interface de operações
+└── .env                  # Variáveis de ambiente (gitignored)
 ```
+
+## 🔒 Segurança e Melhores Práticas
+
+1. **Gerenciamento de Secrets**:
+```bash
+# Gerar novos secrets
+make generate-secrets
+
+# Atualizar .env com os novos valores
+```
+
+2. **Varredura de Segurança**:
+```bash
+# Verificar vulnerabilidades em containers
+make security-scan
+
+# Verificar dependências vulneráveis
+docker-compose exec build-server-node dependency-check --scan /app
+```
+
+3. **Hardening de Serviços**:
+- Autenticação obrigatória em todos os serviços
+- Comunicação interna via rede privada Docker
+- Logs sensíveis criptografados
+- Atualizações automáticas de segurança via `make update`
 
 ## ⚙ Variáveis de Ambiente Críticas
 
@@ -246,74 +234,58 @@ devops-stack/
 |------------------------|---------------------------------------|-------------------------------|
 | `GITEA_SECRET_KEY`     | Chave secreta do Gitea                | `openssl rand -hex 64`        |
 | `DRONE_RPC_SECRET`     | Segredo para comunicação Drone        | `openssl rand -hex 32`        |
-| `POSTGRES_PASSWORD`    | Senha do PostgreSQL                   | `openssl rand -hex 16`        |
-| `GRAFANA_ADMIN_PASSWORD`| Senha do Grafana                     | `openssl rand -hex 16`        |
+| `POSTGRES_PASSWORD`    | Senha root do PostgreSQL              | `openssl rand -hex 16`        |
+| `GITEA_OAUTH2_JWT_SECRET` | Segredo JWT para OAuth2            | `openssl rand -hex 32`        |
+| `DRONE_WEBHOOK_SECRET` | Segredo para webhooks do Drone        | `openssl rand -hex 32`        |
 
-> **Atenção:** Nunca commit o arquivo `.env` no repositório!
+> **Importante:** Nunca comite o arquivo `.env` no repositório!
+
+## 🧪 Testes e Validação
+
+### Testes de Integração:
+```bash
+# Executar suite de testes completa
+make test
+
+# Verificar conectividade entre serviços
+docker-compose exec build-server-node curl -I http://gitea.local:3000
+
+# Executar análise de segurança
+docker-compose exec build-server-node trivy fs /app
+```
+
+### Health Checks:
+```bash
+# Verificar status dos serviços
+make health
+
+# Verificar logs específicos
+make logs-service SERVICE=drone-server
+```
 
 ## 🤝 Contribuição
 
-1. Reporte issues no [GitHub Issues](https://github.com/seu-usuario/devops-stack/issues)
-2. Siga o padrão de branches:
-   - `feature/`: Novas funcionalidades
-   - `fix/`: Correções de bugs
-   - `docs/`: Atualizações de documentação
+1. Fluxo de trabalho:
+```mermaid
+graph LR
+    A[Fork] --> B[Branch feature/]
+    B --> C[Testes Locais]
+    C --> D[Pull Request]
+    D --> E[Revisão]
+    E --> F[Merge]
+```
+
+2. Padrões:
+- Commits semânticos
+- Documentação atualizada
+- Testes para novas funcionalidades
+- Validação em ambiente ARM64
 
 ## 📄 Licença
 
 Este projeto está licenciado sob a [MIT License](LICENSE).
 
 ---
-**Manutenção**: Equipe DevOps - 2024  
-**Status do Ambiente**: ![Health Status](https://img.shields.io/badge/status-production-green)
-```
-
-## 📌 Como Atualizar o README
-
-1. Crie o arquivo na raiz do projeto:
-   ```bash
-   nano README.md
-   ```
-
-2. Cole o conteúdo acima
-
-3. Personalize as seções:
-   - Adicione seu nome/repositório
-   - Atualize URLs de serviços
-   - Ajuste instruções específicas
-
-4. Adicione diagramas:
-   ```bash
-   # Instalar PlantUML
-   sudo apt-get install plantuml
-   
-   # Gerar diagramas
-   cd docs/architecture/diagrams
-   make diagrams
-   ```
-
-5. Commit e push:
-   ```bash
-   git add README.md
-   git commit -m "Adiciona documentação completa"
-   git push origin main
-   ```
-
-## 💡 Dicas de Manutenção
-
-1. **Atualize regularmente**:
-   - Rode `docker-compose pull` mensalmente
-   - Atualize versões no `.env`
-
-2. **Revise documentação**:
-   - Atualize o README após mudanças significativas
-   - Mantenha os runbooks atualizados
-
-3. **Teste procedimentos**:
-   ```bash
-   # Testar backup/restore
-   ./tests/backup-restore-test.sh
-   
-   # Testar deploy
-   ./tests/deploy-test.sh
-   ```
+**Manutenção**: Equipe DevOps - 2025  
+**Status do Ambiente**: ![Health Status](https://img.shields.io/badge/status-production-green)  
+**Última Atualização**: ![Last Update](https://img.shields.io/badge/date-May%202025-yellowgreen)

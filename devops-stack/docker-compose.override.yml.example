@@ -1,54 +1,129 @@
 # docker-compose.override.yml.example
 # Arquivo opcional para customizações em ambiente de desenvolvimento
+# Uso: cp docker-compose.override.yml.example docker-compose.override.yml
 
-version: '3.9'
+version: '3.8'
 
 services:
   gitea:
     volumes:
-      - ./build/gitea/dev-app:/data/gitea/git/repositories:cached
+      - ./dev-data/gitea/repositories:/data/gitea/repositories:rw,cached
+      - ./dev-data/gitea/config:/etc/gitea:rw,cached
     environment:
       - GITEA__log__LEVEL=debug
       - GITEA__webhook__SKIP_TLS_VERIFY=true
     ports:
       - "3000:3000"    # Interface Web
-      - "222:22"       # SSH (se habilitado)
+      - "2222:22"      # SSH
     extra_hosts:
       - "host.docker.internal:host-gateway"
+      - "drone.local:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 1m
+      timeout: 20s
+      retries: 3
+      start_period: 2m
 
-  drone:
+  drone-server:
     environment:
+      - DRONE_DEBUG=true
       - DRONE_LOG_LEVEL=debug
+      - DRONE_TRACE=true
     ports:
       - "8080:80"
     volumes:
-      - ./build/drone/dev-plugins:/plugins:cached
+      - ./dev-data/drone/plugins:/plugins:cached
     extra_hosts:
       - "host.docker.internal:host-gateway"
+      - "gitea.local:host-gateway"
 
-  sonar:
+  drone-runner-ssh:
     environment:
+      - DRONE_DEBUG=true
+      - DRONE_TRACE=true
+    volumes:
+      - ./dev-data/ssh/keys:/root/.ssh:cached
+
+  build-server-node:
+    environment:
+      - NODE_ENV=development
+      - DEBUG=true
+      - CYPRESS_ENV=development
+    ports:
+      - "8000:8000"    # Servidor de Build
+      - "5173:5173"    # Porta para Vite.js
+      - "9229:9229"    # Debugger Node.js
+    volumes:
+      - ./app:/root/builds/app:rw,cached
+      - /root/builds/app/node_modules   # Cache de dependências
+    command: >
+      sh -c "npm install && npm run dev"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 1m
+      timeout: 20s
+      retries: 3
+      start_period: 2m
+
+  sonarqube:
+    environment:
+      - SONAR_DEBUG=true
       - SONAR_LOG_LEVEL=DEBUG
     ports:
       - "9000:9000"
     volumes:
-      - ./build/sonarqube/extensions:/opt/sonarqube/extensions
-      - ./build/sonarqube/dev-conf:/opt/sonarqube/conf:cached
+      - ./dev-data/sonarqube/extensions:/opt/sonarqube/extensions:rw,cached
 
-  build-server:
-    environment:
-      - NODE_ENV=development
-      - DEBUG=true
+  postgres_dbx:
     ports:
-      - "5173:5173"  # Exemplo: porta Vite.js
+      - "5432:5432"
     volumes:
-      - ./build/build-server/app:/usr/src/app
-      - /usr/src/app/node_modules
-    command: >
-      sh -c "npm install && npm run dev"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - ./dev-data/postgres/init-dev:/docker-entrypoint-initdb.d:ro
 
+  nginx:
+    volumes:
+      - ./dev-data/nginx/conf.d:/etc/nginx/conf.d:rw,cached
+      - ./app/dist:/usr/share/nginx/html/app:ro
+    ports:
+      - "80:80"
+      - "443:443"
+
+  grafana:
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_DEFAULT_APP_MODE=development
+      - GF_LOG_LEVEL=debug
+
+  loki:
+    volumes:
+      - ./dev-data/loki:/etc/loki:rw,cached
+
+  prometheus:
+    volumes:
+      - ./dev-data/prometheus:/etc/prometheus:rw,cached
+
+  # Serviço adicional para desenvolvimento
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    ports:
+      - "8025:8025" # Web UI
+      - "1025:1025" # SMTP
+    networks:
+      - devops-network
+
+# Volumes para desenvolvimento
+volumes:
+  dev_build_cache:
+    name: dev_build_cache
+    driver: local
+
+# Configurações de rede para desenvolvimento
 networks:
-  default:
-    name: devops-network
+  devops-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
