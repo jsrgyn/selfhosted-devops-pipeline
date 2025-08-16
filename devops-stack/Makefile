@@ -269,3 +269,35 @@ monitor-down:
 
 monitor-logs:
 	docker-compose logs -f prometheus loki grafana
+
+clean-reports:
+	./scripts/clean-reports.sh
+
+security-scan:
+	docker-compose exec build-server-node dependency-check --project "test-scan" --scan /tmp/sample-project
+
+.PHONY: runbook diagrams adr
+
+runbook:
+	@echo "Executando runbook: $(RUNBOOK)"
+	@./docs/scripts/runbook-runner.sh docs/runbooks/$(RUNBOOK)
+
+diagrams:
+	@./docs/scripts/generate-diagrams.sh
+
+adr:
+	@adr-tools new "Adicionar nova ADR"
+
+metrics-up:
+	docker-compose up -d cadvisor
+
+metrics-logs:
+	docker-compose logs -f cadvisor
+
+.PHONY: backup health-check
+
+backup:
+	./backup/scripts/backup-all.sh
+
+health-check:
+	./health-check.sh

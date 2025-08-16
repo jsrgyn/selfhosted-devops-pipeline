@@ -126,3 +126,5 @@ docker-compose logs -f postgres_dbx
 chmod +x config/postgres/init-scripts/01-init-databases.sh
 
 docker-compose logs -f drone_server
+
+docker-compose build build-server-node

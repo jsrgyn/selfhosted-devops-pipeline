@@ -1,117 +1,319 @@
-# Ver logs em tempo real
+### README.md - DevOps Stack
 
-docker-compose logs -f gitea
-docker-compose logs -f sonarqube
+# DevOps Stack Completa
 
-# Reiniciar serviços específicos
+Esta stack DevOps integra todas as ferramentas essenciais para desenvolvimento moderno, CI/CD, monitoramento e gestão de código em uma única solução containerizada.
 
-docker-compose restart gitea
-docker-compose restart sonarqube
+![DevOps Architecture](docs/architecture/diagrams/devops-architecture.png)
 
-# Atualizar imagens
+## 🚀 Como Iniciar
 
-docker-compose pull
+### Pré-requisitos
+- Docker 20.10+
+- Docker Compose 2.0+
+- Acesso root/sudo
+- 4GB RAM mínimo (8GB recomendado)
+
+### Configuração Inicial
+```bash
+# 1. Clonar repositório
+git clone https://github.com/seu-usuario/devops-stack.git
+cd devops-stack
+
+# 2. Configurar ambiente
+cp .env.example .env
+nano .env  # Editar variáveis conforme necessário
+
+# 3. Configurar DNS local (Linux/Mac)
+echo "127.0.0.1 gitea.local drone.local sonar.local grafana.local dashboard.local" | sudo tee -a /etc/hosts
+
+# 4. Iniciar a stack
+make up
+```
+
+### Comandos Úteis
+```bash
+# Iniciar toda a stack
+make up
+
+# Parar a stack
+make down
+
+# Backup manual
+make backup
+
+# Verificar saúde dos serviços
+make health-check
+
+# Monitorar logs
+make logs
+```
+
+## 🌐 Como Acessar Cada Serviço
+
+| Serviço         | URL                          | Credenciais Padrão           |
+|-----------------|------------------------------|-----------------------------|
+| Gitea (Git)     | http://gitea.local           | admin / senha_do_admin      |
+| Drone CI        | http://drone.local           | Usuário do Gitea            |
+| SonarQube       | http://sonar.local           | admin / admin               |
+| Grafana         | http://grafana.local         | $GRAFANA_ADMIN_USER / $GRAFANA_ADMIN_PASSWORD |
+| Prometheus      | http://prometheus.local:9090 | -                           |
+| cAdvisor        | http://cadvisor.local:8080   | -                           |
+| Dashboard       | http://dashboard.local       | -                           |
+
+> **Nota:** As credenciais são definidas no arquivo `.env`
+
+## 💾 Como Fazer Backup
+
+### Backup Automático
+- Executado diariamente às 02:00 AM
+- Armazenado em `./backup/automated/`
+- Inclui:
+  - Banco de dados PostgreSQL
+  - Dados do Gitea
+  - Dados do SonarQube
+  - Metadados do Docker
+
+### Backup Manual
+```bash
+# Executar backup completo
+make backup
+
+# Localização dos backups:
+ls -lh backup/automated/*/*
+```
+
+### Restauração
+```bash
+# 1. Identificar backup mais recente
+LATEST_BACKUP=$(ls -td ./backup/automated/* | head -1)
+
+# 2. Parar serviços relacionados
+docker-compose stop postgres_dbx gitea sonarqube
+
+# 3. Restaurar PostgreSQL
+gunzip < $LATEST_BACKUP/postgres_*.sql.gz | docker-compose exec -T postgres_dbx psql -U ${POSTGRES_USER}
+
+# 4. Restaurar Gitea
+tar -xzf $LATEST_BACKUP/gitea_*.tar.gz -C ./data/gitea
+
+# 5. Restaurar SonarQube
+tar -xzf $LATEST_BACKUP/sonarqube_*.tar.gz -C ./data/sonarqube/data
+
+# 6. Reiniciar serviços
 docker-compose up -d
+```
 
-# Executar backup
+## 🛠 Como Adicionar Novos Repositórios no Drone
 
-./backup.sh
+### 1. Ativar repositório no Drone
+1. Acesse http://drone.local
+2. Faça login com sua conta do Gitea
+3. Navegue até seu repositório
+4. Clique em "ACTIVATE REPOSITORY"
 
-# Verificar status dos containers
+### 2. Configurar o arquivo .drone.yml
+Crie um arquivo `.drone.yml` na raiz do repositório:
 
-docker-compose ps
+```yaml
+kind: pipeline
+type: ssh
+name: CI Pipeline
 
-# Verificar uso de recursos
+trigger:
+  event: [push, pull_request, tag]
 
-docker stats
+server:
+  host: build-server-node
+  user: root
+  ssh_key:
+    from_secret: BUILD_SERVER_SSH_KEY
 
-# Acessar shell dos containers
+steps:
+  - name: Build and Test
+    commands:
+      - echo "Iniciando pipeline..."
+      - npm install
+      - npm test
+```
 
-docker-compose exec gitea bash
-docker-compose exec sonarqube bash
-docker-compose exec db psql -U gitea
+### 3. Adicionar segredos (opcional)
+Para variáveis sensíveis como tokens de API:
 
-# Limpar dados (CUIDADO!)
+```bash
+drone secret add \
+  --name SONAR_TOKEN \
+  --value seu_token_sonar \
+  --repository seu-usuario/seu-repositorio
+```
 
-docker-compose down -v
-sudo rm -rf data/_ config/_
+### 4. Testar o pipeline
+Faça um push para o repositório:
+```bash
+git add .drone.yml
+git commit -m "Adiciona pipeline CI"
+git push origin main
+```
 
-# Verificar conectividade entre serviços
+## 🔍 Monitoramento e Métricas
 
-docker-compose exec gitea ping sonarqube
-docker-compose exec sonarqube ping db
+### Painéis Disponíveis
+1. **Visão Geral da Stack**: ID 1860
+2. **Desempenho de Containers**: ID 193
+3. **Métricas de Aplicação**: ID 14282
+4. **Logs Consolidados**: Configurar fonte Loki
 
-# Analisar projeto com SonarScanner
+Para importar:
+1. Acesse http://grafana.local
+2. Navegue para "Create" > "Import"
+3. Insira o ID do dashboard
 
-docker run --rm \
- --network gitea-sonarqube-docker_gitea-network \
- -v "$(pwd):/usr/src" \
- sonarsource/sonar-scanner-cli
+### Consultas Úteis
+```promql
+# Uso de CPU por container
+sum(rate(container_cpu_usage_seconds_total[5m])) by (container_label_com_docker_compose_service)
 
-# Instalar certbot
+# Memória utilizada
+container_memory_working_set_bytes{container_label_com_docker_compose_service!=""}
 
-sudo apt install certbot python3-certbot-nginx
+# Healthcheck status
+container_health_status{state!="healthy"}
+```
 
-# Obter certificados
+## 🧪 Testes e Qualidade
 
-sudo certbot --nginx -d git.seudominio.com -d sonar.seudominio.com
+### Fluxo de CI
+1. Push/Pull Request inicia pipeline
+2. Etapas sequenciais:
+   - Análise estática (lint)
+   - Testes unitários
+   - Verificação de segurança (Trivy)
+   - Análise de qualidade (SonarQube)
+   - Deploy condicional
 
-# Renovação automática
+### Executar testes localmente
+```bash
+# Testes de unidade
+docker-compose exec build-server-node npm test
 
-sudo crontab -e
+# Verificação de segurança
+docker-compose exec build-server-node trivy fs .
 
-# Adicionar linha:
+# Análise SonarQube
+docker-compose exec build-server-node sonar-scanner
+```
 
-0 12 \* \* \* /usr/bin/certbot renew --quiet
+## 🔒 Segurança
 
-# Verificar logs
+### Melhores Práticas
+1. **Atualize regularmente**:
+   ```bash
+   docker-compose pull
+   docker-compose up -d --force-recreate
+   ```
+   
+2. **Gere novos secrets**:
+   ```bash
+   openssl rand -hex 32
+   ```
 
-docker-compose logs sonarqube
+3. **Revise vulnerabilidades**:
+   ```bash
+   make security-scan
+   ```
 
-# Verificar espaço em disco
+4. **Acesse relatórios**:
+   http://dashboard.local/reports/
 
-df -h
+## 📁 Estrutura de Diretórios
 
-# Limpar dados corrompidos
+```
+devops-stack/
+├── backup/          # Scripts e dados de backup
+├── config/          # Configurações de serviços
+├── data/            # Dados persistentes
+├── docs/            # Documentação técnica
+├── infra/           # Definições de infraestrutura
+├── monitoring/      # Configurações de monitoramento
+├── scripts/         # Scripts utilitários
+├── secrets/         # Dados sensíveis (não versionado)
+└── tests/           # Testes automatizados
+```
 
-docker-compose down
-docker volume rm gitea-sonarqube-docker_sonarqube_data
-docker-compose up -d
+## ⚙ Variáveis de Ambiente Críticas
 
-# Testar conexão entre containers
+| Variável               | Descrição                             | Como Gerar                    |
+|------------------------|---------------------------------------|-------------------------------|
+| `GITEA_SECRET_KEY`     | Chave secreta do Gitea                | `openssl rand -hex 64`        |
+| `DRONE_RPC_SECRET`     | Segredo para comunicação Drone        | `openssl rand -hex 32`        |
+| `POSTGRES_PASSWORD`    | Senha do PostgreSQL                   | `openssl rand -hex 16`        |
+| `GRAFANA_ADMIN_PASSWORD`| Senha do Grafana                     | `openssl rand -hex 16`        |
 
-docker-compose exec gitea ping sonarqube
-docker-compose exec sonarqube ping db
+> **Atenção:** Nunca commit o arquivo `.env` no repositório!
 
-# Verificar portas
+## 🤝 Contribuição
 
-docker-compose exec sonarqube netstat -tulpn
+1. Reporte issues no [GitHub Issues](https://github.com/seu-usuario/devops-stack/issues)
+2. Siga o padrão de branches:
+   - `feature/`: Novas funcionalidades
+   - `fix/`: Correções de bugs
+   - `docs/`: Atualizações de documentação
 
-# Verificar logs do Gitea
+## 📄 Licença
 
-docker-compose logs gitea | grep webhook
+Este projeto está licenciado sob a [MIT License](LICENSE).
 
-# Testar webhook manualmente
+---
+**Manutenção**: Equipe DevOps - 2024  
+**Status do Ambiente**: ![Health Status](https://img.shields.io/badge/status-production-green)
+```
 
-curl -X POST http://localhost:9000/api/webhooks/github \
- -H "Content-Type: application/json" \
- -d '{"repository":{"full_name":"user/repo"}}'
+## 📌 Como Atualizar o README
 
-## Problemas Comuns:
+1. Crie o arquivo na raiz do projeto:
+   ```bash
+   nano README.md
+   ```
 
-# Permissões:
-sudo chown -R 1000:1000 data config
+2. Cole o conteúdo acima
 
-# Porta em uso:
-sudo netstat -tulpn | grep :3000
+3. Personalize as seções:
+   - Adicione seu nome/repositório
+   - Atualize URLs de serviços
+   - Ajuste instruções específicas
 
-# Altere a porta no .env se necessário
+4. Adicione diagramas:
+   ```bash
+   # Instalar PlantUML
+   sudo apt-get install plantuml
+   
+   # Gerar diagramas
+   cd docs/architecture/diagrams
+   make diagrams
+   ```
 
-# Logs de erro:
-docker-compose logs gitea
-docker-compose logs db
+5. Commit e push:
+   ```bash
+   git add README.md
+   git commit -m "Adiciona documentação completa"
+   git push origin main
+   ```
 
-# Reset completo:
-docker-compose down -v
-sudo rm -rf data/\*
-docker-compose up -d
+## 💡 Dicas de Manutenção
+
+1. **Atualize regularmente**:
+   - Rode `docker-compose pull` mensalmente
+   - Atualize versões no `.env`
+
+2. **Revise documentação**:
+   - Atualize o README após mudanças significativas
+   - Mantenha os runbooks atualizados
+
+3. **Teste procedimentos**:
+   ```bash
+   # Testar backup/restore
+   ./tests/backup-restore-test.sh
+   
+   # Testar deploy
+   ./tests/deploy-test.sh
+   ```
