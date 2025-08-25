@@ -237,9 +237,11 @@ steps:
 ### 6.1. Primeiro Push com Pipeline
 
 ```bash
+git checkout main
+git checkout -b ajustes00
 git add .drone.yml
 git commit -m "Add CI/CD pipeline"
-git push origin main
+git push origin ajustes00
 ```
 
 ### 6.2. Verificação dos Resultados

@@ -120,13 +120,19 @@ services:
   # Drone Runner - CI/CD Runner
   # -------------------- DRONE SSH RUNNER --------------------
   drone-runner-ssh:
-    image: drone/drone-runner-ssh:latest
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "build-server-node:172.20.0.1" 
+    # image: drone/drone-runner-ssh:latest
+    build: ./infra/docker/drone-runner-ssh  # Usar imagem customizada
     container_name: drone_runner_ssh
     restart: unless-stopped
     networks:
       - devops-network
     volumes:
       - ./secrets/ssh/id_rsa.pub:/root/.ssh/authorized_keys:ro
+      - ./secrets/ssh/id_rsa:/root/.ssh/id_rsa:ro  # Montar chave privada
+      - ./secrets/ssh/id_rsa.pub:/root/.ssh/id_rsa.pub:ro  # Montar chave pública
     environment:
       - DRONE_RPC_PROTO=${DRONE_SERVER_PROTO}
       - DRONE_RPC_HOST=${DRONE_RPC_HOST}
@@ -173,14 +179,14 @@ services:
     networks:
       - devops-network
     volumes:
-      - ./secrets/ssh/id_rsa.pub:/root/.ssh/authorized_keys:ro
-      - ./data/build-server:/root/builds
-      - build_cache:/root/.cache
+       - ./secrets/ssh/id_rsa.pub:/root/.ssh/authorized_keys
+       - ./data/build-server:/home/builder/builds
+       - build_cache:/root/.cache
     ports:
-      #- "8022:22"
+      - "2222:2222"
       - "8000:8000"
     healthcheck:
-      test: ["CMD", "pgrep", "sshd"]
+      test: ["CMD", "netstat", "-tlnp", "|", "grep", "2222"]
       interval: 30s
       timeout: 10s
       retries: 5

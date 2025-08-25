@@ -36,9 +36,7 @@ RUN wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-s
 
 # PM2 + extras
 RUN npm install -g pm2 serve concurrently \
-    && pip install httpie \
-    && echo 'alias ll="ls -alF"' >> /root/.bashrc \
-    && echo 'alias ..="cd .."' >> /root/.bashrc
+    && pip install httpie
 
 # Instalar ferramentas de segurança - trivy
 RUN apt-get update && \
@@ -55,7 +53,6 @@ RUN wget https://github.com/jeremylong/DependencyCheck/releases/download/v${DC_V
     && rm dependency-check-${DC_VERSION}-release.zip \
     && ln -s /opt/dependency-check/bin/dependency-check.sh /usr/local/bin/dependency-check
 
-# Adicionar após as instalações de segurança:
 # Dependências para Cypress
 RUN apt-get update && apt-get install -y \
     libgtk2.0-0 \
@@ -70,28 +67,30 @@ RUN apt-get update && apt-get install -y \
     xauth \
     xvfb
 
-# Configurar SSH e criar usuário builder
-RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
-    && sed -i 's/root:\*:/root::/' /etc/shadow \
-    && sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd \
-    && mkdir -p /run/sshd /root/.ssh \
+# Configurar SSH
+RUN mkdir -p /run/sshd /root/.ssh \
     && chmod 700 /root/.ssh \
-    && useradd -m -s /bin/bash builder \
+    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config \
+    && echo "Port 2222" >> /etc/ssh/sshd_config
+
+# Criar usuário builder
+RUN useradd -m -s /bin/bash builder \
     && echo 'builder ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
     && mkdir -p /home/builder/.ssh \
-    && chmod 700 /home/builder/.ssh \
-    && echo 'alias ll="ls -alF"' >> /etc/bash.bashrc \
+    && chmod 700 /home/builder/.ssh
+
+# Configurar aliases
+RUN echo 'alias ll="ls -alF"' >> /etc/bash.bashrc \
     && echo 'alias ..="cd .."' >> /etc/bash.bashrc
 
 # Configurar cache para Cypress
 ENV CYPRESS_CACHE_FOLDER=/root/.cache/Cypress
 
-# Configuração final
-USER builder
-WORKDIR /home/builder
+# Script de entrada
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 2222 8000
 
-CMD ["/usr/sbin/sshd", "-D", "-p", "2222"]
-
-# ENTRYPOINT ["/scripts/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
