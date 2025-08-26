@@ -16,7 +16,7 @@ docker-compose --env-file .env up --build --force-recreate -d
 docker-compose down
 docker-compose up -d
 
-
+docker-compose logs -f
 
 docker-compose restart nginx
 
@@ -128,3 +128,55 @@ chmod +x config/postgres/init-scripts/01-init-databases.sh
 docker-compose logs -f drone_server
 
 docker-compose build build-server-node
+
+docker exec -it drone_runner_ssh nslookup build-server-node
+
+docker network inspect devops-network
+
+# Acesse o container do runner
+docker exec -it drone_runner_ssh sh
+# Dentro do container, tente pingar o build-server-node
+ping build-server-node
+# Se o ping falhar (mas o nslookup funcionar), pode ser um problema de rota ou firewall
+
+docker logs drone_runner_ssh
+
+# Reconstruir e Reiniciar os Containers
+docker-compose build build-server-node
+docker-compose down
+docker-compose up -d
+
+# Testar a Conexão SSH Manualmente
+# Testar conexão do host
+ssh -i secrets/ssh/id_rsa -p 2222 root@localhost
+
+# Ou testar de dentro do runner
+docker exec -it drone_runner_ssh sh
+ssh -i /path/to/private_key -p 2222 root@build-server-node
+
+docker ps -a | grep build-server-node
+
+# Verificar status de saúde do container
+docker inspect --format='{{.State.Status}}' build_server_node
+
+
+# Parar o container
+docker-compose stop build-server-node
+
+# Reconstruir a imagem
+docker-compose build build-server-node
+
+# Remover o container antigo
+docker-compose rm -f build-server-node
+
+# Iniciar o novo container
+docker-compose up -d build-server-node
+
+# Verificar logs
+docker logs build_server_node
+
+# Do host
+ssh -i secrets/ssh/id_rsa -p 2222 root@localhost
+
+# Do container runner
+docker exec -it drone_runner_ssh ssh -i /root/.ssh/id_rsa -p 22 root@build-server-node

@@ -72,7 +72,8 @@ RUN mkdir -p /run/sshd /root/.ssh \
     && chmod 700 /root/.ssh \
     && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
     && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config \
-    && echo "Port 2222" >> /etc/ssh/sshd_config
+    && echo "Port 22" >> /etc/ssh/sshd_config \
+    && ssh-keygen -A  # Gerar chaves host automaticamente
 
 # Criar usuário builder
 RUN useradd -m -s /bin/bash builder \
@@ -91,6 +92,6 @@ ENV CYPRESS_CACHE_FOLDER=/root/.cache/Cypress
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 2222 8000
+EXPOSE 22 8000
 
 ENTRYPOINT ["/entrypoint.sh"]

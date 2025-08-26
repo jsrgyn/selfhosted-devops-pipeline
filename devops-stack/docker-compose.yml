@@ -183,10 +183,10 @@ services:
        - ./data/build-server:/home/builder/builds
        - build_cache:/root/.cache
     ports:
-      - "2222:2222"
+      - "2222:22"
       - "8000:8000"
     healthcheck:
-      test: ["CMD", "netstat", "-tlnp", "|", "grep", "2222"]
+      test: ["CMD", "ss", "-tlnp", "|", "grep", ":2222"]
       interval: 30s
       timeout: 10s
       retries: 5
