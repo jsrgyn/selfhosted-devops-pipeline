@@ -180,3 +180,11 @@ ssh -i secrets/ssh/id_rsa -p 2222 root@localhost
 
 # Do container runner
 docker exec -it drone_runner_ssh ssh -i /root/.ssh/id_rsa -p 22 root@build-server-node
+
+docker exec -it drone_runner_ssh sh
+ssh -i /root/.ssh/id_rsa root@build-server-node
+
+
+ssh-keygen -t rsa -b 4096 -m PEM -f ./secrets/ssh/id_rsa
+ssh-keygen -t rsa -b 4096 -f ./secrets/ssh/id_rsa -q -N ''
+ssh-keygen -t rsa -b 4096 -f ./secrets/ssh/id_rsa -q -N ''

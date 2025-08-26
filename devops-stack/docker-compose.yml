@@ -121,8 +121,7 @@ services:
   # -------------------- DRONE SSH RUNNER --------------------
   drone-runner-ssh:
     extra_hosts:
-      - "host.docker.internal:host-gateway"
-      - "build-server-node:172.20.0.1" 
+      - "host.docker.internal:host-gateway" 
     # image: drone/drone-runner-ssh:latest
     build: ./infra/docker/drone-runner-ssh  # Usar imagem customizada
     container_name: drone_runner_ssh
@@ -130,9 +129,8 @@ services:
     networks:
       - devops-network
     volumes:
-      - ./secrets/ssh/id_rsa.pub:/root/.ssh/authorized_keys:ro
-      - ./secrets/ssh/id_rsa:/root/.ssh/id_rsa:ro  # Montar chave privada
-      - ./secrets/ssh/id_rsa.pub:/root/.ssh/id_rsa.pub:ro  # Montar chave pública
+      - ./secrets/ssh/id_rsa:/root/.ssh/id_rsa  # Montar chave privada
+      - ./secrets/ssh/id_rsa.pub:/root/.ssh/id_rsa.pub # Montar chave pública
     environment:
       - DRONE_RPC_PROTO=${DRONE_SERVER_PROTO}
       - DRONE_RPC_HOST=${DRONE_RPC_HOST}
@@ -186,7 +184,7 @@ services:
       - "2222:22"
       - "8000:8000"
     healthcheck:
-      test: ["CMD", "ss", "-tlnp", "|", "grep", ":2222"]
+      test: ["CMD", "ss", "-tlnp", "|", "grep", ":22"]
       interval: 30s
       timeout: 10s
       retries: 5

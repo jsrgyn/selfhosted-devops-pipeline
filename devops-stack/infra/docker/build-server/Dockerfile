@@ -68,12 +68,22 @@ RUN apt-get update && apt-get install -y \
     xvfb
 
 # Configurar SSH
+# Configurar SSH
 RUN mkdir -p /run/sshd /root/.ssh \
     && chmod 700 /root/.ssh \
+    # Permitir login root com chave pública
     && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#PermitRootLogin yes/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    # Forçar somente autenticação por chave (sem senha)
     && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config \
+    # Habilitar autenticação por chave pública (garantia)
+    && grep -q "PubkeyAuthentication yes" /etc/ssh/sshd_config || echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config \
+    # Garantir que o authorized_keys seja reconhecido
+    && grep -q "AuthorizedKeysFile .ssh/authorized_keys" /etc/ssh/sshd_config || echo "AuthorizedKeysFile .ssh/authorized_keys" >> /etc/ssh/sshd_config \
+    # Definir porta 22
     && echo "Port 22" >> /etc/ssh/sshd_config \
-    && ssh-keygen -A  # Gerar chaves host automaticamente
+    # Gerar chaves do host SSH
+    && ssh-keygen -A
 
 # Criar usuário builder
 RUN useradd -m -s /bin/bash builder \
