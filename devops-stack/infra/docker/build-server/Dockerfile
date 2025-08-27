@@ -68,7 +68,6 @@ RUN apt-get update && apt-get install -y \
     xvfb
 
 # Configurar SSH
-# Configurar SSH
 RUN mkdir -p /run/sshd /root/.ssh \
     && chmod 700 /root/.ssh \
     # Permitir login root com chave pública
@@ -85,6 +84,12 @@ RUN mkdir -p /run/sshd /root/.ssh \
     # Gerar chaves do host SSH
     && ssh-keygen -A
 
+# Instalar Jest globalmente
+RUN npm install -g jest
+
+# Instalar eslint globalmente
+RUN npm install -g eslint
+
 # Criar usuário builder
 RUN useradd -m -s /bin/bash builder \
     && echo 'builder ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
@@ -97,6 +102,9 @@ RUN echo 'alias ll="ls -alF"' >> /etc/bash.bashrc \
 
 # Configurar cache para Cypress
 ENV CYPRESS_CACHE_FOLDER=/root/.cache/Cypress
+
+# Configurar cache para dependências
+RUN mkdir -p /root/.cache && chmod -R 777 /root/.cache
 
 # Script de entrada
 COPY entrypoint.sh /entrypoint.sh
