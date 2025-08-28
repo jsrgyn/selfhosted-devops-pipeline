@@ -47,7 +47,7 @@ RUN apt-get update && \
     apt-get install -y trivy
 
 # Instalar OWASP Dependency-Check
-ENV DC_VERSION=8.4.0
+ENV DC_VERSION=9.0.9
 RUN wget https://github.com/jeremylong/DependencyCheck/releases/download/v${DC_VERSION}/dependency-check-${DC_VERSION}-release.zip \
     && unzip dependency-check-${DC_VERSION}-release.zip -d /opt \
     && rm dependency-check-${DC_VERSION}-release.zip \

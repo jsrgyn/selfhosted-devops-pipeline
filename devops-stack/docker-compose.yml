@@ -180,6 +180,7 @@ services:
        - ./secrets/ssh/id_rsa.pub:/root/.ssh/authorized_keys
        - ./data/build-server:/home/builder/builds
        - build_cache:/root/.cache
+       - dependency_check_cache:/root/.dependency-check/data
     ports:
       - "2222:22"
       - "8000:8000"
@@ -402,5 +403,7 @@ volumes:
   build_cache:
     name: build_cache
     driver: local
+  dependency_check_cache:
+    name: dependency_check_cache
   prometheus_data:
   grafana_data:
